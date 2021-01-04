@@ -1,0 +1,124 @@
+@charset "utf-8";
+
+body {
+  font-family: "Helvetica Narrow", "Helvetica Neue", "Helvetica", "Open Sans",
+    Arial, "sans-serif";
+  margin: 0;
+  padding: 0;
+}
+.center {
+  max-width: 800px;
+  left: 0px;
+  right: 0px;
+  margin: 0 auto;
+  position: relative;
+  height: 100%;
+  text-align: center;
+  display: flex !important;
+  flex-flow: column;
+}
+.center * {
+  text-overflow: ellipsis;
+  max-width: 800px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.center *:nth-last-child(2) {
+  flex: 1 0 auto;
+}
+@-webkit-keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+h1 {
+  font-size: 1.4em;
+  /* font-weight: normal; */
+  /* border-bottom: 1px solid #dfdfdf; */
+  padding: 8px;
+  margin-bottom: 30px;
+  -webkit-animation: fadeIn 1.5s;
+  animation: fadeIn 1.5s;
+}
+p {
+  -webkit-animation: fadeIn 2s;
+  animation: fadeIn 2s;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+a:hover {
+  color: #000;
+  opacity: 1;
+}
+
+ol li {
+  list-style-position: inside;
+}
+
+.logo {
+  display: inline-block;
+}
+
+.warning-icon {
+  margin: 0 auto;
+  padding: 2em 0;
+  width: 7em;
+  height: 7em;
+}
+
+.header h1 {
+  font-style: bold;
+}
+
+.app-btn {
+  border-radius: 3px;
+  display: inline-block;
+  cursor: pointer;
+  color: #ffffff;
+  font-family: Arial;
+  font-size: 13px;
+  padding: 6px 24px;
+  text-decoration: none;
+}
+
+.app-btn:active {
+  position: relative;
+  top: 1px;
+}
+
+.app-btn.danger {
+  box-shadow: inset 0px 1px 0px 0px #cf866c;
+  background: linear-gradient(to bottom, #d0451b 5%, #bc3315 100%);
+  background-color: #d0451b;
+  border: 1px solid #942911;
+  text-shadow: 0px 1px 0px #854629;
+}
+.app-btn.danger:hover {
+  background: linear-gradient(to bottom, #bc3315 5%, #d0451b 100%);
+  background-color: #bc3315;
+}
+.app-btn.success {
+  box-shadow: inset 0px 1px 0px 0px #9acc85;
+  background: linear-gradient(to bottom, #74ad5a 5%, #68a54b 100%);
+  background-color: #74ad5a;
+  border: 1px solid #3b6e22;
+}
+.app-btn.success:hover {
+  background: linear-gradient(to bottom, #68a54b 5%, #74ad5a 100%);
+  background-color: #68a54b;
+}

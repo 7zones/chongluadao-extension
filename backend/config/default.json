@@ -1,0 +1,37 @@
+{
+    "app": {
+        "port": "6969",
+        "domain": "localhost",
+        "version": "v1",
+        "storage": "../data/rating.csv",
+        "static":"public/"
+    },
+    "auth": {
+        "accessTokenSecret": "somerandomaccesstoken",
+        "refreshTokenSecret":"somerandomstringforrefreshtoken",
+        "expiration": "20m",
+        "clients": [
+            {
+                "app": "chrome-extension",
+                "secret": "chongluadaowithloveforcommunity",
+                "role": "client"
+            }, {
+                "app": "firefox-plguin",
+                "secret": "chongluadaowithloveforcommunity",
+                "role": "client"
+            }
+        ]
+    },
+    "db": {
+        "url": "localhost",
+        "port": "27017",
+        "username": "admin",
+        "password": "admin123",
+        "name": "admin"
+    },
+    "gcloud": {
+        "safecheckUrl": "https://safebrowsing.googleapis.com/v4/threatMatches:find",
+        "key": "AIzaSyDAR0q2v-fbXAV337qrH05byIHCl8bxMfA"
+    },
+    "maxLengthUrl": 1000
+}

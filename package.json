@@ -1,0 +1,28 @@
+{
+  "name": "chongluadao-extension",
+  "version": "1.0.0",
+  "description": "chongluadao",
+  "scripts": {
+    "build": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
+    "build-firefox": "rm -rf ./build-firefox/* && cp -r ./frontend/* ./build-firefox/ && webpack --config webpack.firefox-config.js && gulp licenses --firefox"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7zones/chongluadao-extension.git"
+  },
+  "author": "CLD",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/7zones/chongluadao-extension/issues"
+  },
+  "homepage": "https://github.com/7zones/chongluadao-extension#readme",
+  "devDependencies": {
+    "dotenv": "^8.2.0",
+    "eslint": "^7.23.0",
+    "gulp": "4.0.2",
+    "gulp-append-prepend": "1.0.8",
+    "webpack": "^4.0.0",
+    "webpack-cli": "^3.3.12",
+    "zip-folder": "^1.0.0"
+  }
+}

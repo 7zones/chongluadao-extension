@@ -1,0 +1,5 @@
+build
+build-firefox
+node_modules
+.env
+*.zip
