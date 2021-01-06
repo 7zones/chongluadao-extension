@@ -2,7 +2,15 @@
   "name": "Chongluadao",
   "version": "1.0.01",
   "description": "chong lua dao",
-  "permissions": ["activeTab","declarativeContent", "storage", "webNavigation"],
+  "permissions": [
+    "activeTab",
+    "declarativeContent", 
+    "storage", 
+    "webNavigation", 
+    "webRequestBlocking",
+    "webRequest",
+    "tabs",
+    "*://*/*"],
   "background": {
     "scripts": [
       "js/jquery.js",
@@ -21,5 +29,10 @@
       "js": ["js/jquery.js","js/features.js"]
     }
   ],
+  "web_accessible_resources": [
+    "js/blocking.js",
+		"blocking.html"
+	],
+
   "manifest_version": 2
 }

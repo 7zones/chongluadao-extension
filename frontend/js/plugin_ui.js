@@ -10,7 +10,6 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   var result = background.results[tabs[0].id];
   var isPhish = background.isPhish[tabs[0].id];
   var legitimatePercent = background.legitimatePercents[tabs[0].id];
-
   for (var key in result) {
     var newFeature = document.createElement("li");
     //console.log(key);
