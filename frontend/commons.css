@@ -1,0 +1,30 @@
+:root { 
+  font-size: 62.5%;
+  font-family: 'Russo One', 'Josefin Sans', sans-serif;
+}
+html {
+  height: 350px;
+}
+body {
+  padding: 0px;
+  margin: 0px;
+  background: #fff;
+  height: 350px;
+}
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0;
+}
+.navigation-button-wrapper {
+  margin: 0 auto;
+  padding-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+}
+.navigation-button {
+  color: white;
+  font-size: 1.6rem;
+  border-radius: 2rem;
+  background-color: #231F20;
+  width: 15rem;
+  padding: 0.5rem 2rem;
+}
