@@ -5,11 +5,16 @@ var colors = {
   "1": "#ff8b66"
 };
 var featureList = document.getElementById("features");
-
 chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
-  var result = background.results[tabs[0].id];
-  var isPhish = background.isPhish[tabs[0].id];
-  var legitimatePercent = background.legitimatePercents[tabs[0].id];
+  var tab = tabs[0];
+
+  var result = background.results[tab.id];
+  var isPhish = background.isPhish[tab.id];
+  var legitimatePercent = background.legitimatePercents[tab.id];
+
+  var url = new URL(tab.url)
+  var domain = url.hostname
+
   for (var key in result) {
     var newFeature = document.createElement("li");
     //console.log(key);
@@ -19,15 +24,20 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
     featureList.appendChild(newFeature);
   }
 
+  let phishingMessage = isPhish ? "Cảnh báo!! Website này không an toàn." : "Website này an toàn"
+  let phishingColor =colors["-1"]
+
   if (isPhish) {
-    $("#res-circle").css("background", "#ff8b66");
-    $("#site_msg").text("Cảnh báo!! Website này không an toàn.");
+    phishingColor = colors[1]
   }
 
-  if (!isPhish) {
-    $("#site_msg").text("Website này an toàn");
+  if (!isPhish && parseInt(legitimatePercent) < 50) {
+    phishingColor = colors[0]
   }
   
+  $("#site_msg").text(phishingMessage);
+  $("#site_msg").css("fontColor", phishingColor);
   $("#site_score").text(parseInt(legitimatePercent) - 1 + "%");
-});
 
+  $("#domain_url").text(domain);
+});

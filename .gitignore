@@ -1,0 +1,5 @@
+# ignore these folders
+.DS_Store
+backend
+artifacts
+static

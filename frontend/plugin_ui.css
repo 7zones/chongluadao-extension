@@ -1,3 +1,7 @@
+:root { 
+  font-size: 62.5%;
+  font-family: 'Russo One', 'Josefin Sans', sans-serif;
+}
 html {
   height: 350px;
 }
@@ -7,50 +11,82 @@ body {
   background: #fff;
   height: 350px;
 }
-#plugin_name {
-  width: 330px;
-  margin: 0 0;
-  background-color: #195975;
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0;
 }
+#plugin_name {
+  width: 33rem;
+  margin: 0 0;
+  background-color: #231F20;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+h6 {
+  font-size: 1rem;
+  margin: 0;
+}
+
 h2 {
-  margin-top: 20px;
-  margin-bottom: 15px;
-  font-family: 'Josefin Sans', sans-serif;
+  
   text-align: center;
-  font-size: 15px;
+  font-size: 1.5rem;
 }
 h1 {
-  font-family: 'Russo One', sans-serif;
   color: white;
-  font-size: 25px;
-  padding: 10px;
+  font-size: 2.5rem;
+  padding: 1rem;
   text-align: center;
+}
+#features {
+  display: flex;
+  flex-direction: row;
+  flex-flow: wrap;
+  justify-content: center;
+  padding: 1rem;
+}
+#features > li {
+  border-radius: 2rem;
+}
+#reports {
+  margin: 0 auto;
+  padding-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+}
+#domain_url {
+  margin-top: 2rem;
+  padding: 0 1rem;
 }
 .rounded-circle {
   background: #58bc8a;
   width: 10rem;
   height: 10rem;
-  padding: 10px;
+  padding: 1rem;
   clear: both;
   align-content: center;
-  margin: 0 auto; 
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
 }
 #site_score{
-  font-family: 'Josefin Sans', sans-serif;
   color: white;
   font-weight: bold;
-  position: relative;
-  top: 35px;
-  margin-left: 3px;
+  margin-left: 0.3rem;
   text-align: center;
-  font-size: 50px;
+  font-size: 4rem;
 }
 #site_msg{
-  margin-top: 20px;
-  margin-bottom: 5px;
-  font-family: 'Josefin Sans', sans-serif;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
   text-align: center;
-  font-size: 15px;
+  font-size: 1.5rem;
 }
 
 ul {
@@ -58,20 +94,19 @@ ul {
 }
 
 li {
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 15px;
+  font-size: 1.5rem;
   font-weight: 400;
-  margin: 2px;
+  margin: 0.2rem;
   display: inline-block;
-  padding-top: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  padding-bottom: 3px;
+  padding-top: .5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: .5rem;
   color: #fff;
 }
 
 iframe {
-  margin: 10px;
+  margin: 1rem;
   display: inline-block;
 }
 
