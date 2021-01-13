@@ -38,11 +38,18 @@ $(document).ready(function () {
     var ratingValue = parseInt($('#stars li.selected').last().data('value'), 10);
     var msg = "Cảm ơn! Bạn đánh giá " + ratingValue + " sao";
     responseMessage(msg);
+    alert('test: ' + currentUrl);
   });
 });
-
 
 function responseMessage(msg) {
   $('.success-box').fadeIn(200);
   $('.success-box div.text-message').html("<span>" + msg + "</span>");
+}
+
+function buildRequest(currentUrl, rating) {
+  return {
+    currentUrl,
+    rating
+  }
 }

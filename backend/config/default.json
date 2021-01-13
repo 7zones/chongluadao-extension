@@ -2,7 +2,8 @@
     "app": {
         "port": "6969",
         "domain": "localhost",
-        "version": "v1"
+        "version": "v1",
+        "storage": "../data/rating.csv"
     },
     "auth": {
         "accessTokenSecret": "somerandomaccesstoken",

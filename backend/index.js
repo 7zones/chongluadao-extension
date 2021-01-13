@@ -4,10 +4,27 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const status = require('http-status');
 const jwt = require('jsonwebtoken');
+const rateLimit = require("express-rate-limit");
+
+const morgan = require('morgan');
+
+const path = require('path');
+const fs = require('fs');
+const { Parser } = require('json2csv');
+const fields = ['time','rating', 'url', 'ip'];
+const opts = { fields, header: false };
+const parser = new Parser(opts);
 
 var refreshTokens = [];
 const accessTokenSecret = config.get("auth.accessTokenSecret");
 const refreshTokenSecret = config.get("auth.refreshTokenSecret");
+
+const apiLimiter = rateLimit({
+    windowMs: 55 * 60 * 1000,
+    max: 100,
+    message: "Too many request from this IP, please try again after an hour"
+  });
+ 
 
 const app = express();
 // Enable CORS
@@ -18,6 +35,13 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+
+const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
+app.use(morgan('combined', { stream: accessLogStream }))
+
+// Rate limit
+app.use(`/${config.get("app.version")}/rate`, apiLimiter);
+
 
 // TODO: authentication / authorization functions
 // pre-created 2 client application, temporary used purpose
@@ -148,11 +172,23 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
+    const params = { time: new Date(), ...req.body};
+    if (params) {
+        const data = parser.parse(params);
+        fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
+        if (err) {
+            console.log('Some error occured - file either not saved or corrupted file saved.');
+        } else{
+            console.log('saved: ',  data);
+        }
+        });
+    }
+
     res.status(status.OK).send({
         status: status.OK,
         version: config.get("app.version"),
         requestedOn: new Date(),
-      });
+    });
 })
 
 console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
