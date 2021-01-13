@@ -1,0 +1,12 @@
+{
+    "app": {
+        "port": "6969",
+        "domain": "localhost",
+        "version": "v1"
+    },
+    "auth": {
+        "accessTokenSecret": "somerandomaccesstoken",
+        "refreshTokenSecret":"somerandomstringforrefreshtoken",
+        "expiration": "20m"
+    }
+}

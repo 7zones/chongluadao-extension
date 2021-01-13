@@ -1,5 +1,5 @@
 # ignore these folders
 .DS_Store
-backend
+node_modules
 artifacts
 static
