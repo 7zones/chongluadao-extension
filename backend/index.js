@@ -6,12 +6,12 @@ const status = require('http-status');
 const jwt = require('jsonwebtoken');
 const rateLimit = require("express-rate-limit");
 
-const morgan = require('morgan');
-
 const path = require('path');
 const fs = require('fs');
 const { Parser } = require('json2csv');
-const fields = ['time','rating', 'url', 'ip'];
+const morgan = require('morgan');
+
+const fields = ['time','rating', 'url', 'ip', 'client'];
 const opts = { fields, header: false };
 const parser = new Parser(opts);
 
@@ -29,33 +29,21 @@ const apiLimiter = rateLimit({
 const app = express();
 // Enable CORS
 app.use(cors());
-
+app.use(express.static('public')); 
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+// Enable logging
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
 app.use(morgan('combined', { stream: accessLogStream }))
-
 // Rate limit
 app.use(`/${config.get("app.version")}/rate`, apiLimiter);
 
-
 // TODO: authentication / authorization functions
-// pre-created 2 client application, temporary used purpose
-const clients = [
-    {
-        app: 'chrome-extension',
-        secret: 'luatinhkhongluadao',
-        role: 'client'
-    }, {
-        app: 'firefox-plguin',
-        secret: 'password123member',
-        role: 'client'
-    }
-]
+const clients = config.get("auth.clients");
 
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -67,7 +55,6 @@ const authenticateJWT = (req, res, next) => {
             if (err) {
                 return res.sendStatus(403);
             }
-
             req.user = user;
             next();
         });
@@ -78,9 +65,6 @@ const authenticateJWT = (req, res, next) => {
 
 app.post(`/${config.get("app.version")}/initSession`, (req, res) => {
     const { app, secret } = req.body;
-    console.log('app: ', app);
-    console.log('secret: ', secret);
-
     const client = clients.find(u => { return u.app === app && u.secret === secret });
 
     if (client) {
@@ -176,11 +160,11 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
     if (params) {
         const data = parser.parse(params);
         fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
-        if (err) {
-            console.log('Some error occured - file either not saved or corrupted file saved.');
-        } else{
-            console.log('saved: ',  data);
-        }
+            if (err) {
+                console.log('Some error occured - file either not saved or corrupted file saved.');
+            } else{
+                console.log('saved: ',  data);
+            }
         });
     }
 

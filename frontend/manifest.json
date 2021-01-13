@@ -3,13 +3,13 @@
   "version": "1.0.01",
   "description": "chong lua dao",
   "permissions": [
+    "tabs",
     "activeTab",
     "declarativeContent", 
     "storage", 
     "webNavigation", 
     "webRequestBlocking",
     "webRequest",
-    "tabs",
     "*://*/*"],
   "background": {
     "scripts": [
