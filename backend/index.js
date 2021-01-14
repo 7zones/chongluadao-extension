@@ -156,7 +156,7 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
-    const params = { time: new Date(), ...req.body};
+    const params = { time: new Date(), ...req.body, ip: req.ip};
     if (params) {
         const data = parser.parse(params);
         fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {

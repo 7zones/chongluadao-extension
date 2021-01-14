@@ -34,22 +34,47 @@ $(document).ready(function () {
       $(stars[i]).addClass('selected');
     }
 
-    // JUST RESPONSE (Not needed)
     var ratingValue = parseInt($('#stars li.selected').last().data('value'), 10);
     var msg = "Cảm ơn! Bạn đánh giá " + ratingValue + " sao";
-    responseMessage(msg);
-    alert('test: ' + currentUrl);
+    sendRatingRequest({currentUrl, ratingValue}, function() {
+      $('.success-box').fadeIn(200);
+      $('.success-box div.text-message').html("<span>" + msg + "</span>");    
+    }, msg)
   });
 });
 
-function responseMessage(msg) {
-  $('.success-box').fadeIn(200);
-  $('.success-box div.text-message').html("<span>" + msg + "</span>");
-}
+function sendRatingRequest(rating, callback, msg) {
+  //TODO: here callback hell
+  $.post("http://207.148.119.106:6969/v1/initSession", {
+    "app": "chrome-extension",
+    "secret": "luatinhkhongluadao" //need hashing
+  }, function(auth){
+    if (auth && auth.token) {
+      const {token} = auth;
+      $.ajax({
+        type: 'POST',
+        url: 'http://207.148.119.106:6969/v1/rate',
+        headers: {
+          "Authorization": "Bearer " + token
+        },
+        dataType: 'json',
+        data: {
+          rating: rating.ratingValue,
+          url: rating.currentUrl,
+        },
+        success : function(data) {
+        },
+      });  
+    }
+  });
 
-function buildRequest(currentUrl, rating) {
-  return {
-    currentUrl,
-    rating
+  if (callback) {
+    callback(msg);
   }
 }
+
+var currentUrl = "";
+chrome.tabs.query({ active: true,lastFocusedWindow: true}, function(tabs) {
+  var tab = tabs[0];
+  currentUrl = tab.url;
+});
