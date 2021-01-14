@@ -1,0 +1,26 @@
+{
+  "name": "chongluadao.vn.backend",
+  "version": "1.0.0",
+  "description": "chongluadao.vn backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "chongluadao.vn"
+  ],
+  "author": "7zones brother",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "config": "^3.3.3",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-rate-limit": "^5.2.3",
+    "http-status": "^1.5.0",
+    "json2csv": "^5.0.5",
+    "jsonwebtoken": "^8.5.1",
+    "morgan": "^1.10.0"
+  }
+}

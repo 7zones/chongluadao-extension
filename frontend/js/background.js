@@ -6,6 +6,8 @@ var blackListing = [];
 var inputBlockLenient = false;
 var inputBlockFrames = true;
 
+var currentUrl = "";
+
 function fetchLive(callback) {
   $.getJSON("https://raw.githubusercontent.com/picopalette/phishing-detection-plugin/master/static/classifier.json", function(data) {
       chrome.storage.local.set({cache: data, cacheTime: Date.now()}, function() {
@@ -153,8 +155,23 @@ function filter({frameId, url}) {
 	}
 }
 
+
+function sendCurrentUrl() {
+  chrome.tabs.getSelected(null, function(tab) {
+    currentUrl = tab.url
+});
+}
+
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(startup);
+
+
+chrome.tabs.onActivated.addListener(function(activeInfo){  
+  sendCurrentUrl();
+});
+chrome.tabs.onSelectionChanged.addListener(function() {
+  sendCurrentUrl();
+});
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.input_block_list !== undefined) {
