@@ -3,13 +3,14 @@ var legitimatePercents = {};
 var isPhish = {};
 
 var blackListing = [];
+var whiteListing = [];
 var inputBlockLenient = false;
 var inputBlockFrames = true;
 
 var currentUrl = "";
 
 function fetchLive(callback) {
-  $.getJSON("https://raw.githubusercontent.com/picopalette/phishing-detection-plugin/master/static/classifier.json", function(data) {
+  $.getJSON("http://207.148.119.106:6969/classifier.json", function(data) {
       chrome.storage.local.set({cache: data, cacheTime: Date.now()}, function() {
           callback(data);
       });
@@ -59,39 +60,16 @@ function classify(tabId, result) {
       }
     });
   }
-
 }
 
 function startup() {
-	try {
-		blackListing = ["http://vietnamairslines.com/*",
-      "http://jetstarairlines.vn/*",
-      "http://bamboairways.com.vn/*",
-      "http://vietjetvn.com/*",
-      "https://www.youtube.com/channel/UC5rpGxIdqpwVLIZAFwqMdpg/*",
-      "https://www.youtube.com/channel/UCSbUXtl321OOn72HhfF6hcA?pbjreload=102/*",
-      "https://www.youtube.com/c/Tuy%E1%BB%81nM%E1%BB%91c1986/*",
-      "https://sieuno.win/*",
-      "https://www.facebook.com/Ng%C3%B4-Minh-Hi%C3%AA%CC%81u-Hi%C3%AA%CC%81u-PC-101048191917982/*",
-      "https://www.facebook.com/Hi%E1%BA%BFu-PC-101620821829780/*",
-      "https://www.facebook.com/HieuPC.Fan/*",
-      "https://www.facebook.com/Ng%C3%B4-Minh-Hi%E1%BA%BFu-103827758000990/*",
-      "https://www.facebook.com/hieu.ngominh.330/*",
-      "https://www.facebook.com/profile.php?id=100060251539767/*",
-      "https://www.facebook.com/profile.php?id=100060251539767/*",
-      "https://www.facebook.com/profile.php?id=100051958609895/*",
-      "https://www.facebook.com/profile.php?id=100035099033165/*",
-      "https://www.facebook.com/profile.php?id=100023377551188/*",
-      "http://k9vn.com/*",
-      "https://thegioigaigoi.net/*",
-      "https://tuoi69.cc/*",
-      "https://xamvn.us/*",
-      "https://www.pornhub.com/*",
-      "https://pornjimbo.com/*"];
-	}
-	catch (e) {
-		console.trace(e);
-	}
+    $.getJSON("http://207.148.119.106:6969/blacklist.json", function(data) {
+      data.forEach(item => {
+        blackListing.push(item.url);
+      })
+    }).fail(function() {
+    });
+
 }
 
 function filter({frameId, url}) {
