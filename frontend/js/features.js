@@ -1,4 +1,8 @@
 
+const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME'
+const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME'
+const ML_PORT_NAME = 'ML_PORT_NAME'
+
 /*
 $('a').click(function(){
     alert("You are about to go to "+$(this).attr('href'));
@@ -299,11 +303,14 @@ if (iframes.length == 0) {
 }
 
 //---------------------- Sending the result  ----------------------
+let mlPort = chrome.runtime.connect({ name: ML_PORT_NAME });
+mlPort.postMessage({ request: result })
+// chrome.runtime.sendMessage(result, function (response) {
+//   console.log(result);
+//   //console.log(response);
+// });
 
-chrome.runtime.sendMessage(result, function (response) {
-  console.log(result);
-  //console.log(response);
-});
+
 
 // chrome.runtime.onMessage.addListener(
 //   function (request, sender, sendResponse) {
