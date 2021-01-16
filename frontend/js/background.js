@@ -9,6 +9,11 @@ var inputBlockFrames = true;
 
 var currentUrl = "";
 
+const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME'
+const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME'
+const ML_PORT_NAME = 'ML_PORT_NAME'
+
+
 function fetchLive(callback) {
   $.getJSON("http://207.148.119.106:6969/classifier.json", function(data) {
       chrome.storage.local.set({cache: data, cacheTime: Date.now()}, function() {
@@ -51,10 +56,10 @@ function classify(tabId, result) {
       console.log(y[0]);
       if(y[0][0]) {
         isPhish[tabId] = true;
-        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-          chrome.tabs.sendMessage(tabs[0].id, {action: "alert_user"}, function(response) {
-          });
-        });
+        // chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        //   chrome.tabs.sendMessage(tabs[0].id, {action: "alert_user"}, function(response) {
+        //   });
+        // });
       } else {
         isPhish[tabId] = false;
       }
@@ -85,8 +90,15 @@ function filter({frameId, url}) {
     console.log('no block')
 		return; // no block list
   }
+
+  let whiteList = localStorage.getItem('whiteList');
+
+  if (whiteList !== null && whiteList !== 'null') {
+    whiteList = JSON.parse(whiteList);
+    blackListing = blackListing.filter(url => !whiteList.includes(url));
+  }
   
-	let sites = blackListing;
+	let sites = blackListing
 	for (let i = 0; i < sites.length; ++i) {
 		let site = sites[i];
 		let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
@@ -151,20 +163,59 @@ chrome.tabs.onSelectionChanged.addListener(function() {
   sendCurrentUrl();
 });
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.input_block_list !== undefined) {
-		blackListing = request.input_block_list;
-		inputBlockLenient = request.input_block_lenient;
-	}
-	if (request.close_tab) {
-		chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
-			chrome.tabs.remove(tab.id);
-		});
-  }
+// chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+//   if (request.input_block_list !== undefined) {
+//     blackListing = request.input_block_list;
+//     inputBlockLenient = request.input_block_lenient;
+//   }
+//   if (request.close_tab) {
+//     chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
+//       chrome.tabs.remove(tab.id);
+//     });
+//   }
   
-  results[sender.tab.id]=request;
-  classify(sender.tab.id, request);
-  sendResponse({received: "result"});
+//   results[sender.tab.id]=request;
+//   classify(sender.tab.id, request);
+//   sendResponse({received: "result"});
+// });
+
+chrome.runtime.onConnect.addListener(function(port) {
+  switch (port.name){
+    case REDIRECT_PORT_NAME:
+      port.onMessage.addListener(function(msg) {
+        chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
+          chrome.tabs.update(tab.id, {url: msg.redirect});
+        });
+      });
+      break;
+
+    case CLOSE_TAB_PORT_NAME:
+      port.onMessage.addListener(function(msg) {
+        if (msg.close_tab) {
+          chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
+            chrome.tabs.remove(tab.id);
+          });
+        }
+      });
+      break;
+
+    case ML_PORT_NAME:
+      port.onMessage.addListener(function(msg) {
+        const { request } = msg
+        if (request.input_block_list !== undefined) {
+          blackListing = request.input_block_list;
+          inputBlockLenient = request.input_block_lenient;
+        }
+  
+        chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
+          results[tab.id]=request;
+          classify(tab.id, request);
+        });
+      });
+
+    default:
+      break;
+  }
 });
 
 chrome.webRequest.onBeforeRequest.addListener(filter, {
