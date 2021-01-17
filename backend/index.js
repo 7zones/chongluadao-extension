@@ -1,5 +1,6 @@
 const config = require('config');
 const express = require('express');
+
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const status = require('http-status');
@@ -30,6 +31,7 @@ const app = express();
 // Enable CORS
 app.use(cors());
 app.use(express.static('public')); 
+
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -85,11 +87,13 @@ app.post(`/${config.get("app.version")}/initSession`, (req, res) => {
             refreshTokenSecret);
 
         refreshTokens.push(refreshToken);
+
+        
         res.json({
             version: config.get("app.version"),
             requestedOn: new Date(),
             token: accessToken,
-            refresh: refreshToken
+            refresh: refreshToken,
         });
     } 
     else {
@@ -157,6 +161,10 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
     const params = { time: new Date(), ...req.body, ip: req.ip};
+    if (!req.session.key) {
+
+    }
+
     if (params) {
         const data = parser.parse(params);
         fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
@@ -172,8 +180,34 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
         status: status.OK,
         version: config.get("app.version"),
         requestedOn: new Date(),
+        key: req.session.key,
+        "message":"ok"
     });
 })
 
+app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(req, res) {
+    if (!req.params.resId || ['blacklist', 'whitelist'].indexOf(req.params.resId) == -1) {
+        res.status(status.NOT_FOUND).send({
+            status: status.NOT_FOUND,
+            version: config.get("app.version"),
+            requestedOn: new Date(),
+            message: `${req.params.resId} not found`
+        });
+    }
+
+    //get encrypted data
+    fs.readFile(`secure/${req.params.resId}.json`, "utf8", function(err, data){
+        if(err) throw err;
+  
+        if (data) {
+            return res.status(status.OK).send({
+                status: status.OK,
+                version: config.get("app.version"),
+                requestedOn: new Date(),
+                data
+            });
+        }
+    });
+});
+
 console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
-app.listen(config.get("app.port"));
