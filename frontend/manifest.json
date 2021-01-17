@@ -33,6 +33,11 @@
     "js/blocking.js",
 		"blocking.html"
 	],
-
+  "icons": {
+    "16": "assets/cldvn16.png",
+    "32": "assets/cldvn32.png",
+    "48": "assets/cldvn48.png",
+    "128": "assets/cldvn128.png"
+  },
   "manifest_version": 2
 }
