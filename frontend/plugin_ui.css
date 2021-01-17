@@ -2,29 +2,17 @@
   font-size: 62.5%;
   font-family: 'Russo One', 'Josefin Sans', sans-serif;
 }
-html {
-  height: 350px;
-}
-body {
-  padding: 0px;
-  margin: 0px;
-  background: #fff;
-  height: 350px;
-}
-h1, h2, h3, h4, h5, h6 {
-  margin-bottom: 0;
-}
 #plugin_name {
   width: 33rem;
   margin: 0 0;
-  background-color: #231F20;
+  background-color: white;
   color: #fff;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
+  background: rgb(23,217,3);
+  background: linear-gradient(90deg, rgba(23,217,3,1) 0%, rgba(255,255,255,1) 50%, rgba(23,217,3,1) 100%);
 }
 h6 {
   font-size: 1rem;
@@ -42,28 +30,63 @@ h1 {
   padding: 1rem;
   text-align: center;
 }
+.detail-content {
+  display: flex;
+}
+.collapsible {
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  width: 10rem;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 1.2rem;
+  margin-left: 2rem;
+}
+.active, .collapsible:hover {
+  background-color: #39c881;
+}
+.collapsible:after {
+  content: '\002B';
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-left: 2px;
+}
+.active:after {
+  content: "\2212";
+}
+.feature-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
 #features {
   display: flex;
   flex-direction: row;
   flex-flow: wrap;
   justify-content: center;
   padding: 1rem;
+  margin-bottom: 0;
 }
 #features > li {
   border-radius: 2rem;
 }
 #reports {
   margin: 0 auto;
-  padding-bottom: 2rem;
+  padding-bottom: 1rem;
+  padding-top: 1rem;
   display: flex;
   justify-content: center;
 }
 #domain_url {
-  margin-top: 2rem;
+  margin: 1rem 0;
   padding: 0 1rem;
 }
 .rounded-circle {
-  background: #58bc8a;
+  background: #28a745;
   width: 10rem;
   height: 10rem;
   padding: 1rem;
@@ -73,17 +96,21 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 #site_score{
-  color: white;
   font-weight: bold;
   margin-left: 0.3rem;
   text-align: center;
-  font-size: 4rem;
+}
+.site_message.warning , .score.warning {
+  color: #cc0000;
+}
+.site_message.safe , .score.safe {
+  color: #28a745;
 }
 #site_msg{
-  margin-top: 2rem;
+  margin-top: 1rem;
   margin-bottom: 0.5rem;
   text-align: center;
   font-size: 1.5rem;
@@ -94,7 +121,7 @@ ul {
 }
 
 li {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 400;
   margin: 0.2rem;
   display: inline-block;

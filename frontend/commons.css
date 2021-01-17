@@ -2,14 +2,10 @@
   font-size: 62.5%;
   font-family: 'Russo One', 'Josefin Sans', sans-serif;
 }
-html {
-  height: 350px;
-}
 body {
   padding: 0px;
   margin: 0px;
   background: #fff;
-  height: 350px;
 }
 h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0;
