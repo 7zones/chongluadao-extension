@@ -39,19 +39,12 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   }
 
   let phishingMessage = isPhish ? "Cảnh báo!! Website này không an toàn." : "Website này an toàn"
-  let phishingColor = colors["-1"]
-
-  if (isPhish) {
-    phishingColor = colors[1]
-  }
-
-  if (!isPhish && parseInt(legitimatePercent) < 50) {
-    phishingColor = colors[0]
-  }
 
   let site_score = document.getElementById("site_score");
   let percentage_content = document.getElementById("percentage_content");
   let site_msg = document.getElementById("site_msg");
+  percentage_content.classList.add(`p${parseInt(legitimatePercent)}`);
+
   if (isPhish) {
     percentage_content.classList.add("orange");
     site_score.classList.add("warning");
