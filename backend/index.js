@@ -161,8 +161,13 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
     const params = { time: new Date(), ...req.body, ip: req.ip};
-    if (!req.session.key) {
-
+    if (params.rating < 1 || params.rating > 5) {
+        res.status(status.BAD_REQUEST).send({
+            status: status.BAD_REQUEST,
+            version: config.get("app.version"),
+            requestedOn: new Date(),
+            "message":"Invalid submitting value"
+        });
     }
 
     if (params) {
