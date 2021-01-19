@@ -63,11 +63,13 @@ function classify(tabId, result) {
       } else {
         isPhish[tabId] = false;
       }
+      updateBadge(isPhish[tabId], legitimatePercents[tabId]);
     });
   }
 }
 
 function startup() {
+
     $.getJSON("http://207.148.119.106:6969/blacklist.json", function(data) {
       data.forEach(item => {
         blackListing.push(item.url);
@@ -149,7 +151,29 @@ function filter({frameId, url}) {
 function sendCurrentUrl() {
   chrome.tabs.getSelected(null, function(tab) {
     currentUrl = tab.url
-});
+    updateBadge(isPhish[tab.id], legitimatePercents[tab.id]);
+  });
+}
+
+function updateBadge(isPhishing, legitimatePercent) {
+  const colors = {
+    "-1": "#28a745",
+    "0": "#ffeb3c",
+    "1": "#cc0000"
+  };
+
+  chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`});
+
+  
+  if (isPhishing.toString() == "true") {
+    chrome.browserAction.setBadgeText({text: "!"});
+    chrome.browserAction.setBadgeBackgroundColor({color: colors[2]});
+  }
+  //else(!isPhishing && parseInt(legitimatePercent) < 50)
+  else {
+    chrome.browserAction.setBadgeText({text: "OK"});
+    chrome.browserAction.setBadgeBackgroundColor({color: colors[0]});
+  }
 }
 
 chrome.runtime.onStartup.addListener(startup);
