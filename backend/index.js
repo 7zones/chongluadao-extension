@@ -161,33 +161,35 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
     const params = { time: new Date(), ...req.body, ip: req.ip};
-    if (params.rating < 1 || params.rating > 5) {
+    const msg = validateSubmitting(params);
+    if (msg.indexOf("ok") == -1) {
         res.status(status.BAD_REQUEST).send({
             status: status.BAD_REQUEST,
             version: config.get("app.version"),
             requestedOn: new Date(),
-            "message":"Invalid submitting value"
+            "message": msg
         });
     }
+    else {
+        if (params) {
+            const data = parser.parse(params);
+            fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
+                if (err) {
+                    console.log('Some error occured - file either not saved or corrupted file saved.');
+                } else{
+                    console.log('saved: ',  data);
+                }
+            });
+        }
 
-    if (params) {
-        const data = parser.parse(params);
-        fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
-            if (err) {
-                console.log('Some error occured - file either not saved or corrupted file saved.');
-            } else{
-                console.log('saved: ',  data);
-            }
+        res.status(status.OK).send({
+            status: status.OK,
+            version: config.get("app.version"),
+            requestedOn: new Date(),
+            key: req.session.key,
+            "message":"ok"
         });
     }
-
-    res.status(status.OK).send({
-        status: status.OK,
-        version: config.get("app.version"),
-        requestedOn: new Date(),
-        key: req.session.key,
-        "message":"ok"
-    });
 })
 
 app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(req, res) {
@@ -215,4 +217,18 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
     });
 });
 
+function validateSubmitting(params) {
+    const { rating, url } = params;
+    const expUrl = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+
+    if (rating < 1 || rating > 5) {
+        return "Rating is out of range";
+    }
+    else if (!url.match(new RegExp(expUrl))) {      
+        return `Incorrect URL ${url}`;
+    }
+    return "ok";
+}
+
 console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
+app.listen(config.get("app.port"));
