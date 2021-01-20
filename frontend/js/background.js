@@ -95,9 +95,14 @@ function filter({frameId, url}) {
 
   let whiteList = localStorage.getItem('whiteList');
 
-  if (whiteList !== null && whiteList !== 'null') {
-    whiteList = JSON.parse(whiteList);
-    blackListing = blackListing.filter(url => !whiteList.includes(url));
+  // if (whiteList !== null && whiteList !== 'null') {
+  //   whiteList = JSON.parse(whiteList);
+  //   blackListing = blackListing.filter(url => !whiteList.includes(url));
+  // }
+
+  if (whiteList !== null) {
+    localStorage.removeItem('whiteList');
+    return;
   }
   
 	let sites = blackListing

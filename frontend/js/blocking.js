@@ -15,15 +15,16 @@ document.getElementById("close").addEventListener("click", function (e) {
 
 document.getElementById("allow").addEventListener("click", function(e) {
 
-	let whiteList = localStorage.getItem('whiteList');
+	// let whiteList = localStorage.getItem('whiteList');
 
-	if (whiteList === null || whiteList === 'null') {
-		whiteList = [message.match]
-	} else {
-		whiteList = JSON.parse(whiteList);
-		whiteList.push(message.match);
-	}
-	localStorage.setItem("whiteList", JSON.stringify(whiteList));
+	// if (whiteList === null || whiteList === 'null') {
+	// 	whiteList = [message.match]
+	// } else {
+	// 	whiteList = JSON.parse(whiteList);
+	// 	whiteList.push(message.match);
+	// }
+	// localStorage.setItem("whiteList", JSON.stringify(whiteList));
+	localStorage.setItem("whiteList", "true");
 
 	redirectPort.postMessage({ redirect: message.site })
 })
