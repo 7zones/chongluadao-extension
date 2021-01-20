@@ -1,5 +1,4 @@
 $(document).ready(function () {
-
   /* 1. Visualizing things on Hover - See next part for action on click */
   $('#stars li').on('mouseover', function () {
     var onStar = parseInt($(this).data('value'), 10); // The star currently mouse on
@@ -20,7 +19,7 @@ $(document).ready(function () {
     });
   });
 
-
+  $('.success-box').hide();
   /* 2. Action to perform on click */
   $('#stars li').on('click', function () {
     var onStar = parseInt($(this).data('value'), 10); // The star currently selected
@@ -35,10 +34,16 @@ $(document).ready(function () {
     }
 
     var ratingValue = parseInt($('#stars li.selected').last().data('value'), 10);
-    var msg = "Cảm ơn! Bạn đánh giá " + ratingValue + " sao";
     sendRatingRequest({currentUrl, ratingValue}, function() {
+      $('.success-box').show();
       $('.success-box').fadeIn(200);
       $('.success-box div.text-message').html("<span>" + msg + "</span>");    
+
+      //remove all click
+      $('#stars li').off();
+
+      //cache to storage
+      chrome.storage.local.set({cachedUrl: currentUrl, cacheTime: Date.now()}, function() {});
     }, msg)
   });
 });
@@ -72,9 +77,20 @@ function sendRatingRequest(rating, callback, msg) {
     callback(msg);
   }
 }
-
+var msg = "Cảm ơn bạn đã đánh giá";
 var currentUrl = "";
 chrome.tabs.query({ active: true,lastFocusedWindow: true}, function(tabs) {
   var tab = tabs[0];
   currentUrl = tab.url;
+  chrome.storage.local.get(['cachedUrl'], function(result) {
+    if (result && result.cachedUrl) {
+      if (currentUrl.match( new RegExp( result.cachedUrl, "g")).length) {
+        //todo: uhm, what kind of logic here ?
+        $('#stars li').off();
+        $('.success-box').show();
+        $('.success-box').fadeIn(200);
+        $('.success-box div.text-message').html("<span>" + msg + "</span>");    
+      }
+    }
+  });
 });

@@ -1,10 +1,24 @@
 var background = chrome.extension.getBackgroundPage();
 var colors = {
-  "-1": "#58bc8a",
+  "-1": "#28a745",
   "0": "#ffeb3c",
-  "1": "#ff8b66"
+  "1": "#cc0000"
 };
 var featureList = document.getElementById("features");
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function () {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.maxHeight) {
+      content.style.maxHeight = null;
+    } else {
+      content.style.maxHeight = content.scrollHeight + "px";
+    }
+  });
+}
 chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   var tab = tabs[0];
 
@@ -25,18 +39,23 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   }
 
   let phishingMessage = isPhish ? "Cảnh báo!! Website này không an toàn." : "Website này an toàn"
-  let phishingColor =colors["-1"]
+
+  let site_score = document.getElementById("site_score");
+  let percentage_content = document.getElementById("percentage_content");
+  let site_msg = document.getElementById("site_msg");
+  percentage_content.classList.add(`p${parseInt(legitimatePercent)}`);
 
   if (isPhish) {
-    phishingColor = colors[1]
-  }
-
-  if (!isPhish && parseInt(legitimatePercent) < 50) {
-    phishingColor = colors[0]
+    percentage_content.classList.add("orange");
+    site_score.classList.add("warning");
+    site_msg.classList.add("warning");
+  } else {
+    site_score.classList.add("safe");
+    site_msg.classList.add("safe");
   }
   
+
   $("#site_msg").text(phishingMessage);
-  $("#site_msg").css("fontColor", phishingColor);
   $("#site_score").text(parseInt(legitimatePercent) - 1 + "%");
 
   $("#domain_url").text(domain);
