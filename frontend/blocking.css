@@ -1,13 +1,14 @@
 @charset "utf-8";
+:root { 
+	font-size: 62.5%;
+	font-family: 'Russo One', 'Josefin Sans', sans-serif;
+  }
 
 body {
-	font-family: "Helvetica Narrow", "Helvetica Neue", "Helvetica", "Open Sans", Arial, "sans-serif";
 	margin:0;
-	padding:0;
-	color:#ffffff;
-	font-size: 62.5%;
-	background: #ff0000;
+	padding: 2%;
 }
+
 .center {
 	max-width:800px;
 	left:0px;
@@ -18,6 +19,7 @@ body {
 	text-align: center;
 	display:flex !important;
 	flex-flow:column;
+	border: 1;
 }
 .center * {
 	text-overflow: ellipsis;
@@ -25,39 +27,8 @@ body {
 	overflow:hidden;
 	flex:0 0 auto;
 }
-.center *:nth-last-child(2) {
-	flex:1 0 auto;
-}
-@-webkit-keyframes rotateIn {
-	0% {
-		transform-origin: center;
-		-transform: rotate(-360deg);
-		opacity: 0.1;
-		/*width:20px;
-		height:20px;
-		padding-top:54px;
-		padding-bottom:54px*/
-	}
-	100% {
-		transform-origin: center;
-		transform: none;
-	}
-}
-@keyframes rotateIn {
-	0% {
-		transform-origin: center;
-		-transform: rotate(-360deg);
-		opacity: 0.1;
-		/*width:20px;
-		height:20px;
-		padding-top:54px;
-		padding-bottom:54px*/
-	}
-	100% {
-		transform-origin: center;
-		transform: none;
-	}
-}
+
+
 .icon {
 	margin:20px auto 20px;
 	width:128px;
@@ -66,24 +37,8 @@ body {
 	-webkit-user-select:none;
 	user-select:none;
 }
-@-webkit-keyframes fadeIn {
-	0% {
-		opacity: 0;
-	}
-	100% {
-		opacity:1;
-	}
-}
-@keyframes fadeIn {
-	0% {
-		opacity: 0;
-	}
-	100% {
-		opacity:1;
-	}
-}
+
 h1 {
-	font-size:1.4em;
 	font-weight: normal;
 	border-bottom: 1px solid #dfdfdf;
 	padding:8px;

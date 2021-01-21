@@ -63,7 +63,7 @@ function classify(tabId, result) {
       } else {
         isPhish[tabId] = false;
       }
-      updateBadge(isPhish[tabId], legitimatePercents[tabId]);
+      updateBadge(isPhish[tabId], legitimatePercents[tabId], tabId);
     });
   }
 }
@@ -156,28 +156,18 @@ function filter({frameId, url}) {
 function sendCurrentUrl() {
   chrome.tabs.getSelected(null, function(tab) {
     currentUrl = tab.url
-    updateBadge(isPhish[tab.id], legitimatePercents[tab.id]);
+    updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
   });
 }
 
-function updateBadge(isPhishing, legitimatePercent) {
-  const colors = {
-    "-1": "#28a745",
-    "0": "#ffeb3c",
-    "1": "#cc0000"
-  };
-
-  chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`});
-
-  
+function updateBadge(isPhishing, legitimatePercent, tabId) { 
+  chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`}); 
   if (isPhishing.toString() == "true") {
-    chrome.browserAction.setBadgeText({text: "!"});
-    chrome.browserAction.setBadgeBackgroundColor({color: colors[2]});
+    chrome.browserAction.setIcon({path: './assets/cldvn128_a.png', tabId});
   }
   //else(!isPhishing && parseInt(legitimatePercent) < 50)
   else {
-    chrome.browserAction.setBadgeText({text: "OK"});
-    chrome.browserAction.setBadgeBackgroundColor({color: colors[0]});
+    chrome.browserAction.setIcon({path: './assets/cldvn128.png', tabId});
   }
 }
 
