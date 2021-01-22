@@ -53,14 +53,9 @@ function classify(tabId, result) {
     fetchCLF(function(clf) {
       var rf = random_forest(clf);
       y = rf.predict(X);
-      console.log(y[0]);
-      if(y[0][0]) {
-        isPhish[tabId] = true;
-        // chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        //   chrome.tabs.sendMessage(tabs[0].id, {action: "alert_user"}, function(response) {
-        //   });
-        // });
-      } else {
+      isPhish[tabId] = y[0][0];
+      //TODO: correction
+      if (isPhish[tabId] && legitimatePercents[tabId] > 60) {
         isPhish[tabId] = false;
       }
       updateBadge(isPhish[tabId], legitimatePercents[tabId]);
