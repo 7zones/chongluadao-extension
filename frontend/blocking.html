@@ -7,23 +7,39 @@
   
     </head>
     <body>
-    <div class="center" style="display:none;">
-      <h1 id="header">Don't visit <span class="sitetitle">site.com</span></h1>
-      <p>
-        You see this page because you decided to prevent <span class="sitematch">site.com</span> from being accessed.
-      </p>
+      
+      <div class="center" style="display:none;">
+        <div class="header">
+          <h1>
+            <img src="assets/logo.png" class="logo" alt="chongluadao.vn">
+            An toàn trong tầm tay - ChongLuaDao.vn
+          </h1>
+        </div>
 
-      <button id="allow">Allow <span class="sitematch">site.com</span></button>
+        <img class="warning-icon" src="assets/warning-icon.png" alt="chongluadao.vn warning">
+        
+        <h1 id="header">Trang <span class="sitetitle">site.com</span> đã bị khóa theo đánh giá cộng đồng </h1>
+        <p>
+          Những lý do sau đây dẫn đến trang này bị khóa do báo cáo của cộng đồng:
+        </p>
+        
+        <ol>
+          <li>Trang giả mạo, lừa đảo lấy tiền, thông tin người khác</li>
+          <li>Trang có nội dung độc hại (có chứa mã độc, hình ảnh đồi trụy, nội dung xấu ảnh hưởng tới trẻ nhỏ về tâm lý,...)</li>
+          <li>Trang giả mạo, bôi nhọ danh dự người khác</li>
+          <li>Trang phản động, chống phá chính quyền</li>
+        </ol>
 
-      <image class="icon" src="/chrome/skin/stop256.png"></image>
-      <p class="access" id="access">
-        Allow <span class="sitematch">site.com</span> for the next 5 minutes
-      </p>
-      <p></p>
-      <p class="footer">
-        <a href="#" id="close">Close</a>
-      </p>
-    </div>
+        <p>
+          Cách bảo vệ bạn trên không gian mạng <a href="#">tại đây</a>
+        </p>
+
+        <button class="app-btn success" id="close">Đóng</button>
+        
+        <p class="footer">
+          <button class="app-btn danger" id="allow">Tôi muốn xem <span class="sitematch">site.com</span></button>
+        </p>
+      </div>
     <script src="/js/blocking.js"></script>
     </body>
   </html>
