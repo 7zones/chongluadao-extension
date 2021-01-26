@@ -21,5 +21,13 @@
                 "role": "client"
             }
         ]
+    },
+    "db": {
+        "url": "localhost",
+        "port": "27017",
+        "username": "admin",
+        "password": "admin123",
+        "name": "admin"
     }
 }
+
