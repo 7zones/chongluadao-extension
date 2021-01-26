@@ -12,6 +12,8 @@ const fs = require('fs');
 const { Parser } = require('json2csv');
 const morgan = require('morgan');
 
+const { MongoClient } = require('mongodb');
+
 const fields = ['time','rating', 'url', 'ip', 'client'];
 const opts = { fields, header: false };
 const parser = new Parser(opts);
@@ -34,6 +36,7 @@ app.use(express.static('public'));
 
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '1mb'}));
 app.use(bodyParser.urlencoded({
   extended: true
 }));
@@ -160,7 +163,7 @@ app.get(`/${config.get("app.version")}/ping`, function(req, res){
 
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
-    const params = { time: new Date(), ...req.body, ip: req.ip};
+    const params = {  time: new Date(), ...req.body, ip: req.ip};
     const msg = validateSubmitting(params);
     if (msg.indexOf("ok") == -1) {
         res.status(status.BAD_REQUEST).send({
@@ -172,6 +175,8 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
     }
     else {
         if (params) {
+            db.collection("rating").insertOne(params);
+            /*   
             const data = parser.parse(params);
             fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
                 if (err) {
@@ -179,14 +184,14 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
                 } else{
                     console.log('saved: ',  data);
                 }
-            });
+            }); 
+            */
         }
 
         res.status(status.OK).send({
             status: status.OK,
             version: config.get("app.version"),
             requestedOn: new Date(),
-            key: req.session.key,
             "message":"ok"
         });
     }
@@ -230,5 +235,19 @@ function validateSubmitting(params) {
     return "ok";
 }
 
-console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
-app.listen(config.get("app.port"));
+
+var db = null;
+const url = `mongodb://${config.get("db.username")}:${config.get("db.password")}@${config.get("db.url")}:${config.get("db.port")}/${config.get("db.name")}`;
+MongoClient.connect(url, {
+    useUnifiedTopology: true,
+}, (err, database) => {
+    // ... start the server 
+    if (err) {
+        console.log('error: ', err);
+        return;
+    }
+
+    db = database.db(config.get("db.name"));
+    console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
+    app.listen(config.get("app.port"));
+ });
