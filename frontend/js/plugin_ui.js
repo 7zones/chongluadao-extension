@@ -38,7 +38,7 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
     featureList.appendChild(newFeature);
   }
 
-  let phishingMessage = isPhish ? "Cảnh báo!! Website này không an toàn." : "Website này an toàn"
+  const phishingMessage = isPhish ? "Website này có thể không an toàn." : "Website cớ thể này an toàn"
 
   let site_score = document.getElementById("site_score");
   let percentage_content = document.getElementById("percentage_content");
@@ -49,14 +49,14 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
     percentage_content.classList.add("orange");
     site_score.classList.add("warning");
     site_msg.classList.add("warning");
-  } else {
+  }
+  else {
     site_score.classList.add("safe");
     site_msg.classList.add("safe");
   }
   
-
-  $("#site_msg").text(phishingMessage);
-  $("#site_score").text(parseInt(legitimatePercent) - 1 + "%");
-
+  const percentage  = parseInt(legitimatePercent);
+  $("#site_msg").text(isNaN(percentage) ? "..." : phishingMessage);
+  $("#site_score").text(isNaN(percentage) ? "..." : parseInt(legitimatePercent) - 1 + "%");
   $("#domain_url").text(domain);
 });
