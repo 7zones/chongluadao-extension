@@ -52,7 +52,7 @@ function sendRatingRequest(rating, callback, msg) {
   //TODO: here callback hell
   $.post("https://api.chongluadao.vn/v1/initSession", {
     "app": "chrome-extension",
-    "secret": "luatinhkhongluadao" //need hashing
+    "secret": "xxeaWiCnkx" //need hashing
   }, function(auth){
     if (auth && auth.token) {
       const {token} = auth;
