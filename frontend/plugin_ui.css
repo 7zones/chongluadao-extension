@@ -11,9 +11,18 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgb(23,217,3);
-  background: linear-gradient(90deg, rgba(23,217,3,1) 0%, rgba(255,255,255,1) 50%, rgba(23,217,3,1) 100%);
+  background: -webkit-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
+  background: -o-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
+  background: -ms-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
+  background: -moz-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
+  background: linear-gradient(69deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
 }
+
+.logo {
+  border-radius: 50%;
+  padding: 0.5em;
+}
+
 h6 {
   font-size: 1rem;
   margin: 0;

@@ -50,15 +50,15 @@ $(document).ready(function () {
 
 function sendRatingRequest(rating, callback, msg) {
   //TODO: here callback hell
-  $.post("http://207.148.119.106:6969/v1/initSession", {
+  $.post("https://api.chongluadao.vn/v1/initSession", {
     "app": "chrome-extension",
-    "secret": "luatinhkhongluadao" //need hashing
+    "secret": "xxeaWiCnkx" //need hashing
   }, function(auth){
     if (auth && auth.token) {
       const {token} = auth;
       $.ajax({
         type: 'POST',
-        url: 'http://207.148.119.106:6969/v1/rate',
+        url: 'https://api.chongluadao.vn/v1/rate',
         headers: {
           "Authorization": "Bearer " + token
         },

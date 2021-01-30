@@ -15,7 +15,7 @@ const ML_PORT_NAME = 'ML_PORT_NAME'
 
 
 function fetchLive(callback) {
-  $.getJSON("http://207.148.119.106:6969/classifier.json", function(data) {
+  $.getJSON("https://api.chongluadao.vn/classifier.json", function(data) {
       chrome.storage.local.set({cache: data, cacheTime: Date.now()}, function() {
           callback(data);
       });
@@ -48,8 +48,6 @@ function classify(tabId, result) {
     for(var key in result) {
         X[0].push(parseInt(result[key]));
     }
-    console.log(result);
-    console.log(X);
     fetchCLF(function(clf) {
       var rf = random_forest(clf);
       y = rf.predict(X);
@@ -65,7 +63,7 @@ function classify(tabId, result) {
 
 function startup() {
 
-    $.getJSON("http://207.148.119.106:6969/blacklist.json", function(data) {
+    $.getJSON("https://api.chongluadao.vn/blacklist.json", function(data) {
       data.forEach(item => {
         blackListing.push(item.url);
       })
@@ -90,11 +88,7 @@ function filter({frameId, url}) {
 
   let whiteList = localStorage.getItem('whiteList');
 
-  // if (whiteList !== null && whiteList !== 'null') {
-  //   whiteList = JSON.parse(whiteList);
-  //   blackListing = blackListing.filter(url => !whiteList.includes(url));
-  // }
-
+  
   if (whiteList !== null) {
     localStorage.removeItem('whiteList');
     return;
@@ -177,29 +171,12 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(startup);
 
-
 chrome.tabs.onActivated.addListener(function(activeInfo){  
   sendCurrentUrl();
 });
 chrome.tabs.onSelectionChanged.addListener(function() {
   sendCurrentUrl();
 });
-
-// chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-//   if (request.input_block_list !== undefined) {
-//     blackListing = request.input_block_list;
-//     inputBlockLenient = request.input_block_lenient;
-//   }
-//   if (request.close_tab) {
-//     chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
-//       chrome.tabs.remove(tab.id);
-//     });
-//   }
-  
-//   results[sender.tab.id]=request;
-//   classify(sender.tab.id, request);
-//   sendResponse({received: "result"});
-// });
 
 chrome.runtime.onConnect.addListener(function(port) {
   switch (port.name){

@@ -38,7 +38,7 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
     featureList.appendChild(newFeature);
   }
 
-  const phishingMessage = isPhish ? "Website này có thể không an toàn." : "Website cớ thể này an toàn"
+  const phishingMessage = isPhish ? "Website này có thể không an toàn." : "Website có thể này an toàn"
 
   let site_score = document.getElementById("site_score");
   let percentage_content = document.getElementById("percentage_content");
