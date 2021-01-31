@@ -107,8 +107,7 @@ function filter({frameId, url}) {
 		site = "^(?:[a-z0-9\-_]+:\/\/)?(?:www\.)?" + site + appendix;
 		let regex = new RegExp(site, "i");
     let match = currentUrl.match(regex);
-    
-		if (match && match.length > 0) {
+		if ((match && match.length > 0) || (sites[i].match(/(?:id=)(\d+)/)[1] == currentUrl.match(/(?:id=)(\d+)/)[1])) {
 			if (inputBlockLenient) {
 				let access = localStorage.getItem(sites[i]);
 				if (access) {
@@ -121,7 +120,8 @@ function filter({frameId, url}) {
 						localStorage.removeItem(sites[i]);
 					}
 				}
-			}
+      }
+      
 			if (frameId !== 0) {
 				if (inputBlockFrames) {
 					return { cancel: true };
@@ -148,6 +148,7 @@ function sendCurrentUrl() {
     updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
   });
 }
+
 
 function updateBadge(isPhishing, legitimatePercent, tabId) {
   const colors = {
