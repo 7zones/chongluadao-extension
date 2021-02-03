@@ -27,12 +27,12 @@ const apiLimiter = rateLimit({
     max: 100,
     message: "Too many request from this IP, please try again after an hour"
   });
- 
+
 
 const app = express();
 // Enable CORS
 app.use(cors());
-app.use(express.static('public')); 
+app.use(express.static('public'));
 
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
@@ -74,31 +74,31 @@ app.post(`/${config.get("app.version")}/initSession`, (req, res) => {
 
     if (client) {
         //TODO: generate an access token
-        const accessToken = jwt.sign({ 
-            username: client.app, 
-            role: client.role 
-        }, 
-        accessTokenSecret, 
-        { 
-            expiresIn: config.get("auth.expiration") 
+        const accessToken = jwt.sign({
+            username: client.app,
+            role: client.role
+        },
+        accessTokenSecret,
+        {
+            expiresIn: config.get("auth.expiration")
         });
 
-        const refreshToken = jwt.sign({ 
-            username: client.app, 
-            role: client.role 
-            }, 
+        const refreshToken = jwt.sign({
+            username: client.app,
+            role: client.role
+            },
             refreshTokenSecret);
 
         refreshTokens.push(refreshToken);
 
-        
+
         res.json({
             version: config.get("app.version"),
             requestedOn: new Date(),
             token: accessToken,
             refresh: refreshToken,
         });
-    } 
+    }
     else {
         res.status(status.FORBIDDEN).send({
             version: config.get("app.version"),
@@ -123,13 +123,13 @@ app.post(`/${config.get("app.version")}/token`, (req, res) => {
             return res.sendStatus(403);
         }
 
-        const accessToken = jwt.sign({ 
-            username: client.app, 
-            role: client.role 
-        }, 
-        accessTokenSecret, 
-        { 
-            expiresIn: config.get("auth.expiration") 
+        const accessToken = jwt.sign({
+            username: client.app,
+            role: client.role
+        },
+        accessTokenSecret,
+        {
+            expiresIn: config.get("auth.expiration")
         });
 
         res.json({
@@ -176,7 +176,7 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
     else {
         if (params) {
             db.collection("rating").insertOne(params);
-            /*   
+            /*
             const data = parser.parse(params);
             fs.appendFile(config.get("app.storage"), `${data}\r\n`, 'utf8', function (err) {
                 if (err) {
@@ -184,7 +184,7 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
                 } else{
                     console.log('saved: ',  data);
                 }
-            }); 
+            });
             */
         }
 
@@ -195,6 +195,19 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
             "message":"ok"
         });
     }
+})
+
+/**
+ * The route to get blacklist sites from DB
+ * this is public so the request shouldn't be authenticated
+ *
+ * @return {JSON} array of objects
+ */
+app.get(`/${config.get("app.version")}/blacklist`, function(req, res) {
+    db.collection("blacklist").find().toArray().then(result => {
+        res.status(status.OK).send(result);
+    })
+
 })
 
 app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(req, res) {
@@ -210,7 +223,7 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
     //get encrypted data
     fs.readFile(`secure/${req.params.resId}.json`, "utf8", function(err, data){
         if(err) throw err;
-  
+
         if (data) {
             return res.status(status.OK).send({
                 status: status.OK,
@@ -229,7 +242,7 @@ function validateSubmitting(params) {
     if (rating < 1 || rating > 5) {
         return "Rating is out of range";
     }
-    else if (!url.match(new RegExp(expUrl))) {      
+    else if (!url.match(new RegExp(expUrl))) {
         return `Incorrect URL ${url}`;
     }
     return "ok";
@@ -241,7 +254,7 @@ const url = `mongodb://${config.get("db.username")}:${config.get("db.password")}
 MongoClient.connect(url, {
     useUnifiedTopology: true,
 }, (err, database) => {
-    // ... start the server 
+    // ... start the server
     if (err) {
         console.log('error: ', err);
         return;

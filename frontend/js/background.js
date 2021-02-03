@@ -63,7 +63,7 @@ function classify(tabId, result) {
 
 function startup() {
 
-    $.getJSON("https://api.chongluadao.vn/blacklist.json", function(data) {
+    $.getJSON("https://api.chongluadao.vn/v1/blacklist", function(data) {
       data.forEach(item => {
         blackListing.push(item.url);
       })
@@ -74,12 +74,12 @@ function startup() {
 
 function filter({frameId, url}) {
 	let currentUrl = url;
-  if (!currentUrl 
-    || currentUrl.indexOf("chrome://") == 0 
+  if (!currentUrl
+    || currentUrl.indexOf("chrome://") == 0
     || currentUrl.indexOf(chrome.extension.getURL("/")) == 0) {
 		return; // invalid url
   }
-  
+
 	if (!blackListing) {
     //TODO: whitelisting
     console.log('no block')
@@ -88,12 +88,12 @@ function filter({frameId, url}) {
 
   let whiteList = localStorage.getItem('whiteList');
 
-  
+
   if (whiteList !== null) {
     localStorage.removeItem('whiteList');
     return;
   }
-  
+
 	let sites = blackListing
 	for (let i = 0; i < sites.length; ++i) {
 		let site = sites[i];
@@ -121,7 +121,7 @@ function filter({frameId, url}) {
 					}
 				}
       }
-      
+
 			if (frameId !== 0) {
 				if (inputBlockFrames) {
 					return { cancel: true };
@@ -159,7 +159,7 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
 
   chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`});
 
-  
+
   if (isPhishing.toString() == "true") {
     chrome.browserAction.setIcon({path: '../assets/cldvn_red.png', tabId});
   }
@@ -172,7 +172,7 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(startup);
 
-chrome.tabs.onActivated.addListener(function(activeInfo){  
+chrome.tabs.onActivated.addListener(function(activeInfo){
   sendCurrentUrl();
 });
 chrome.tabs.onSelectionChanged.addListener(function() {
@@ -206,7 +206,7 @@ chrome.runtime.onConnect.addListener(function(port) {
           blackListing = request.input_block_list;
           inputBlockLenient = request.input_block_lenient;
         }
-  
+
         chrome.tabs.query({ currentWindow: true, active: true }, function([tab, ...tabs]) {
           results[tab.id]=request;
           classify(tab.id, request);
