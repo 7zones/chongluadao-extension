@@ -71,6 +71,11 @@ function startup() {
         })
     }).fail(function() {});
 
+    $.getJSON("http://localhost:6969/v1/whitelist", function(data) {
+        data.forEach(item => {
+            whiteListing.push(item.url);
+        })
+    }).fail(function() {});
 }
 
 function filter({
@@ -85,25 +90,23 @@ function filter({
     }
 
     if (!blackListing) {
-        //TODO: whitelisting
-        console.log('no block')
         return; // no block list
     }
 
-    let whiteList = localStorage.getItem('whiteList');
-
-
-    if (whiteList !== null) {
-        localStorage.removeItem('whiteList');
-        return;
+    // Check if this site is in whitelist
+    for (let i = 0; i < whiteListing.length; i++) {
+        if (whiteListing[i].includes(getDomain(currentUrl))) {
+            return;
+        }
     }
+
 
     let sites = blackListing
     for (let i = 0; i < sites.length; ++i) {
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
         let trail = site.substr(site.length - 2);
-        
+        console.log("black check")
         if (trail == "/*") {
             site = site.substr(0, site.length - 2);
             appendix = "(?:$|/.*$)";
@@ -189,6 +192,16 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
             tabId
         });
     }
+}
+
+/**
+ * function to get domain from url
+ * @param  {String}     url
+ * @return {String}     domain
+ */
+function getDomain(url) {
+    const matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    return matches && matches[1];
 }
 
 chrome.runtime.onStartup.addListener(startup);
