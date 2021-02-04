@@ -102,9 +102,10 @@ function filter({
     for (let i = 0; i < sites.length; ++i) {
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
-        let trail = site.substr(site.length - 3);
-        if (trail == "/.*") {
-            site = site.substr(0, site.length - 3);
+        let trail = site.substr(site.length - 2);
+        
+        if (trail == "/*") {
+            site = site.substr(0, site.length - 2);
             appendix = "(?:$|/.*$)";
         }
 
