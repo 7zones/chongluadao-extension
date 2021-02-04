@@ -5,9 +5,9 @@
   "permissions": [
     "tabs",
     "activeTab",
-    "declarativeContent", 
-    "storage", 
-    "webNavigation", 
+    "declarativeContent",
+    "storage",
+    "webNavigation",
     "webRequestBlocking",
     "webRequest",
     "*://*/*"],
@@ -33,6 +33,7 @@
     "js/blocking.js",
 		"blocking.html"
 	],
+    "incognito":"split",
   "icons": {
     "16": "assets/cldvn16.png",
     "32": "assets/cldvn32.png",
