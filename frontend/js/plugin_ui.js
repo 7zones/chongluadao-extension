@@ -21,6 +21,7 @@ for (i = 0; i < coll.length; i++) {
 }
 chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   var tab = tabs[0];
+  let tabId = tab.id
   var url = new URL(tab.url)
   var domain = url.hostname
 
@@ -28,12 +29,21 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
       $("#pluginBody").hide()
       $("#isSafe").show()
       $("#isSafe .site-url").text(domain)
-      
+
       chrome.browserAction.setIcon({
           path: '../assets/cldvn128.png',
           tabId
       });
 
+  } else if(background.isBlocked[tab.id]){
+      $("#pluginBody").hide()
+      $("#isPhishing").show()
+      $("#isPhishing .site-url").text(background.isBlocked[tab.id])
+
+      chrome.browserAction.setIcon({
+          path: '../assets/cldvn_red.png',
+          tabId
+      });
   } else {
       var result = background.results[tab.id];
       var isPhish = background.isPhish[tab.id];

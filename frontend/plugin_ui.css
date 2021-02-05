@@ -169,3 +169,6 @@ a {
 .is-safe .site-url {
     font-size: 1.2rem;
 }
+#isPhishing h2 {
+    color: #cc0000;
+}

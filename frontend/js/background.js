@@ -2,6 +2,7 @@ var results = {};
 var legitimatePercents = {};
 var isPhish = {};
 var isWhiteList = {}
+var isBlocked = {}
 
 var blackListing = [];
 var whiteListing = [];
@@ -161,6 +162,14 @@ function filter({
                 favicon: "https://www.google.com/s2/favicons?domain=" + currentUrl,
             };
             let url = chrome.extension.getURL("blocking.html") + "#" + JSON.stringify(message);
+            isBlocked[tabId] = currentUrl
+
+            // TODO: This still not work, must find another way to change icon to red:
+            chrome.browserAction.setIcon({
+                path: '../assets/cldvn_red.png',
+                tabId
+            });
+
             return {
                 redirectUrl: url
             };
@@ -223,14 +232,14 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
      *  so that the classifier can work on this tab
      */
     if(!Object.keys(isPhish).includes(activeInfo.tabId.toString()))
-        chrome.tabs.reload(tabId, null, function() {
+        chrome.tabs.reload(activeInfo.tabId, null, function() {
             sendCurrentUrl();
         })
     else
         sendCurrentUrl();
 });
 
-chrome.tabs.onSelectionChanged.addListener(function(tabId) {
+chrome.tabs.onSelectionChanged.addListener(function(tabId) {    
     /**
      *  We have to refresh the page if this is the first time user using this plugin,
      *  so that the classifier can work on this tab
