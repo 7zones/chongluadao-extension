@@ -1,6 +1,7 @@
 var results = {};
 var legitimatePercents = {};
 var isPhish = {};
+var isWhiteList = {}
 
 var blackListing = [];
 var whiteListing = [];
@@ -35,6 +36,13 @@ function fetchCLF(callback) {
 }
 
 function classify(tabId, result) {
+    /**
+     * if this site is on whitelist, we don't need to classify it anymore
+     * I return it here because don't know where to disable the ML event, should not trigger this event later
+     */
+    if(isWhiteList[tabId])
+        return;
+
     var legitimateCount = 0;
     var suspiciousCount = 0;
     var phishingCount = 0;
@@ -80,7 +88,8 @@ function startup() {
 
 function filter({
     frameId,
-    url
+    url,
+    tabId
 }) {
     let currentUrl = url;
     if (!currentUrl ||
@@ -96,6 +105,7 @@ function filter({
     // Check if this site is in whitelist
     for (let i = 0; i < whiteListing.length; i++) {
         if (whiteListing[i].includes(getDomain(currentUrl))) {
+            isWhiteList[tabId] = true
             return;
         }
     }
@@ -106,7 +116,7 @@ function filter({
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
         let trail = site.substr(site.length - 2);
-        console.log("black check")
+        
         if (trail == "/*") {
             site = site.substr(0, site.length - 2);
             appendix = "(?:$|/.*$)";
