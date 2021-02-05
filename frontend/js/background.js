@@ -1,6 +1,8 @@
 var results = {};
 var legitimatePercents = {};
 var isPhish = {};
+var isWhiteList = {}
+var isBlocked = {}
 
 var blackListing = [];
 var whiteListing = [];
@@ -35,6 +37,13 @@ function fetchCLF(callback) {
 }
 
 function classify(tabId, result) {
+    /**
+     * if this site is on whitelist, we don't need to classify it anymore
+     * I return it here because don't know where to disable the ML event, should not trigger this event later
+     */
+    if(isWhiteList[tabId])
+        return;
+
     var legitimateCount = 0;
     var suspiciousCount = 0;
     var phishingCount = 0;
@@ -71,11 +80,17 @@ function startup() {
         })
     }).fail(function() {});
 
+    $.getJSON("https://api.chongluadao.vn/v1/whitelist", function(data) {
+        data.forEach(item => {
+            whiteListing.push(item.url);
+        })
+    }).fail(function() {});
 }
 
 function filter({
     frameId,
-    url
+    url,
+    tabId
 }) {
     let currentUrl = url;
     if (!currentUrl ||
@@ -85,25 +100,24 @@ function filter({
     }
 
     if (!blackListing) {
-        //TODO: whitelisting
-        console.log('no block')
         return; // no block list
     }
 
-    let whiteList = localStorage.getItem('whiteList');
-
-
-    if (whiteList !== null) {
-        localStorage.removeItem('whiteList');
-        return;
+    // Check if this site is in whitelist
+    for (let i = 0; i < whiteListing.length; i++) {
+        if (whiteListing[i].includes(getDomain(currentUrl))) {
+            isWhiteList[tabId] = true
+            return;
+        }
     }
+
 
     let sites = blackListing
     for (let i = 0; i < sites.length; ++i) {
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
         let trail = site.substr(site.length - 2);
-        
+
         if (trail == "/*") {
             site = site.substr(0, site.length - 2);
             appendix = "(?:$|/.*$)";
@@ -148,6 +162,14 @@ function filter({
                 favicon: "https://www.google.com/s2/favicons?domain=" + currentUrl,
             };
             let url = chrome.extension.getURL("blocking.html") + "#" + JSON.stringify(message);
+            isBlocked[tabId] = currentUrl
+
+            // TODO: This still not work, must find another way to change icon to red:
+            chrome.browserAction.setIcon({
+                path: '../assets/cldvn_red.png',
+                tabId
+            });
+
             return {
                 redirectUrl: url
             };
@@ -176,7 +198,7 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
     });
 
 
-    if (isPhishing.toString() == "true") {
+    if (isPhishing) {
         chrome.browserAction.setIcon({
             path: '../assets/cldvn_red.png',
             tabId
@@ -191,14 +213,45 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
     }
 }
 
+/**
+ * function to get domain from url
+ * @param  {String}     url
+ * @return {String}     domain
+ */
+function getDomain(url) {
+    const matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    return matches && matches[1];
+}
+
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(startup);
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    sendCurrentUrl();
+    /**
+     *  We have to refresh the page if this is the first time user using this plugin,
+     *  so that the classifier can work on this tab
+     */
+    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
+    if(!checked.includes(activeInfo.tabId.toString()))
+        chrome.tabs.reload(activeInfo.tabId, null, function() {
+            sendCurrentUrl();
+        })
+    else
+        sendCurrentUrl();
 });
-chrome.tabs.onSelectionChanged.addListener(function() {
-    sendCurrentUrl();
+
+chrome.tabs.onSelectionChanged.addListener(function(tabId) {
+    /**
+     *  We have to refresh the page if this is the first time user using this plugin,
+     *  so that the classifier can work on this tab
+     */
+    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
+    if(!checked.includes(tabId.toString()))
+        chrome.tabs.reload(tabId, null, function() {
+            sendCurrentUrl();
+        })
+    else
+        sendCurrentUrl();
 });
 
 chrome.runtime.onConnect.addListener(function(port) {

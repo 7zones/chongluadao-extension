@@ -198,13 +198,25 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
 })
 
 /**
- * The route to get blacklist sites from DB
+ * The route to get blacklist or whitelist sites from DB
  * this is public so the request shouldn't be authenticated
- *
+ * @param {String} typelist  type of list we wanna get ('blacklist' or 'whitelist')
  * @return {JSON} array of objects
  */
-app.get(`/${config.get("app.version")}/blacklist`, function(req, res) {
-    db.collection("blacklist").find().toArray().then(result => {
+app.get(`/${config.get("app.version")}/:typelist`, function(req, res) {
+    let type = null
+    switch (req.params.typelist) {
+        case "blacklist":
+            type = "blacklist"
+            break;
+        case "whitelist":
+            type = "whitelist"
+            break;
+        default:
+            res.status(400).send(req.params.typelist + " is not a valid type of list")
+    }
+
+    db.collection(type).find().toArray().then(result => {
         res.status(status.OK).send(result);
     })
 

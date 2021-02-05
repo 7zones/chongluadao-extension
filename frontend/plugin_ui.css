@@ -1,4 +1,4 @@
-:root { 
+:root {
   font-size: 62.5%;
   font-family: 'Russo One', 'Josefin Sans', sans-serif;
 }
@@ -29,7 +29,7 @@ h6 {
 }
 
 h2 {
-  
+
   text-align: center;
   font-size: 1.5rem;
 }
@@ -150,4 +150,25 @@ a {
   text-align: center;
   display: block;
   color: #195975
+}
+
+
+.is-safe {
+    text-align: center;
+    padding: 1rem 0 1.5rem 0;
+    display: none;
+}
+.is-safe img {
+    width: 20%;
+}
+.is-safe h2 {
+    color: #28a745;
+    font-size: 2.2rem;
+    margin-top: 1rem;
+}
+.is-safe .site-url {
+    font-size: 1.2rem;
+}
+#isPhishing h2 {
+    color: #cc0000;
 }
