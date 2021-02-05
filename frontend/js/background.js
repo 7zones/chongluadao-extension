@@ -80,7 +80,7 @@ function startup() {
         })
     }).fail(function() {});
 
-    $.getJSON("http://localhost:6969/v1/whitelist", function(data) {
+    $.getJSON("https://api.chongluadao.vn/v1/whitelist", function(data) {
         data.forEach(item => {
             whiteListing.push(item.url);
         })
@@ -231,7 +231,8 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
      *  We have to refresh the page if this is the first time user using this plugin,
      *  so that the classifier can work on this tab
      */
-    if(!Object.keys(isPhish).includes(activeInfo.tabId.toString()))
+    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
+    if(!checked.includes(activeInfo.tabId.toString()))
         chrome.tabs.reload(activeInfo.tabId, null, function() {
             sendCurrentUrl();
         })
@@ -239,12 +240,13 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         sendCurrentUrl();
 });
 
-chrome.tabs.onSelectionChanged.addListener(function(tabId) {    
+chrome.tabs.onSelectionChanged.addListener(function(tabId) {
     /**
      *  We have to refresh the page if this is the first time user using this plugin,
      *  so that the classifier can work on this tab
      */
-    if(!Object.keys(isPhish).includes(tabId.toString()))
+    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
+    if(!checked.includes(tabId.toString()))
         chrome.tabs.reload(tabId, null, function() {
             sendCurrentUrl();
         })
