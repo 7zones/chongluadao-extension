@@ -116,7 +116,7 @@ function filter({
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
         let trail = site.substr(site.length - 2);
-        
+
         if (trail == "/*") {
             site = site.substr(0, site.length - 2);
             appendix = "(?:$|/.*$)";
@@ -189,7 +189,7 @@ function updateBadge(isPhishing, legitimatePercent, tabId) {
     });
 
 
-    if (isPhishing.toString() == "true") {
+    if (isPhishing) {
         chrome.browserAction.setIcon({
             path: '../assets/cldvn_red.png',
             tabId
@@ -218,10 +218,29 @@ chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(startup);
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    sendCurrentUrl();
+    /**
+     *  We have to refresh the page if this is the first time user using this plugin,
+     *  so that the classifier can work on this tab
+     */
+    if(!Object.keys(isPhish).includes(activeInfo.tabId.toString()))
+        chrome.tabs.reload(tabId, null, function() {
+            sendCurrentUrl();
+        })
+    else
+        sendCurrentUrl();
 });
-chrome.tabs.onSelectionChanged.addListener(function() {
-    sendCurrentUrl();
+
+chrome.tabs.onSelectionChanged.addListener(function(tabId) {
+    /**
+     *  We have to refresh the page if this is the first time user using this plugin,
+     *  so that the classifier can work on this tab
+     */
+    if(!Object.keys(isPhish).includes(tabId.toString()))
+        chrome.tabs.reload(tabId, null, function() {
+            sendCurrentUrl();
+        })
+    else
+        sendCurrentUrl();
 });
 
 chrome.runtime.onConnect.addListener(function(port) {
