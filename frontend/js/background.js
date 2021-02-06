@@ -103,6 +103,12 @@ function filter({
         return; // no block list
     }
 
+    // In case user decided to not blocking this site, we let them in :
+    if(localStorage.getItem("whiteList")) {
+        localStorage.removeItem("whiteList")
+        return;
+    }
+
     // Check if this site is in whitelist
     for (let i = 0; i < whiteListing.length; i++) {
         if (whiteListing[i].includes(getDomain(currentUrl))) {
@@ -301,7 +307,7 @@ chrome.runtime.onConnect.addListener(function(port) {
                 });
             });
 
-        default:
+        default:ML_PORT_NAME
             break;
     }
 });
