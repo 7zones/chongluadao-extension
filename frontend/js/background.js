@@ -109,15 +109,6 @@ function filter({
         return;
     }
 
-    // Check if this site is in whitelist
-    for (let i = 0; i < whiteListing.length; i++) {
-        if (whiteListing[i].includes(getDomain(currentUrl))) {
-            isWhiteList[tabId] = true
-            return;
-        }
-    }
-
-
     let sites = blackListing
     for (let i = 0; i < sites.length; ++i) {
         let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
@@ -179,6 +170,17 @@ function filter({
             return {
                 redirectUrl: url
             };
+        }
+    }
+
+    /**
+     * Check if this site is in whitelist
+     * REMEMBER : Have to check whitelist AFTER blacklist
+     */
+    for (let i = 0; i < whiteListing.length; i++) {
+        if (whiteListing[i].includes(getDomain(currentUrl))) {
+            isWhiteList[tabId] = true
+            return;
         }
     }
 }
