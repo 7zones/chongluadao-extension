@@ -6,33 +6,19 @@ let redirectPort = chrome.runtime.connect({ name: REDIRECT_PORT_NAME });
 let closeTabPort = chrome.runtime.connect({ name: CLOSE_TAB_PORT_NAME });
 
 document.getElementById("close").addEventListener("click", function (e) {
-	// chrome.runtime.sendMessage({ close_tab: true });
-	// return false;
 	closeTabPort.postMessage({ close_tab: true })
 	return false;
 });
 
-
 document.getElementById("allow").addEventListener("click", function(e) {
-
-	// let whiteList = localStorage.getItem('whiteList');
-
-	// if (whiteList === null || whiteList === 'null') {
-	// 	whiteList = [message.match]
-	// } else {
-	// 	whiteList = JSON.parse(whiteList);
-	// 	whiteList.push(message.match);
-	// }
-	// localStorage.setItem("whiteList", JSON.stringify(whiteList));
 	localStorage.setItem("whiteList", "true");
-
 	redirectPort.postMessage({ redirect: message.site })
 })
 
 let hash = window.location.hash.substring(1);
 try {
 	var message = JSON.parse(decodeURI(hash));
-	
+
 	if (!message.v2) {
 		message.v2 = true;
 		// reload once to be able to connect to chrome.runtime

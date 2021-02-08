@@ -36,12 +36,12 @@ function fetchCLF(callback) {
     });
 }
 
-function classify(tabId, result) {
+function classify(tabId, result, url) {
     /**
      * if this site is on whitelist, we don't need to classify it anymore
      * I return it here because don't know where to disable the ML event, should not trigger this event later
      */
-    if(isWhiteList[tabId])
+    if(isWhiteList[tabId] == url)
         return;
 
     var legitimateCount = 0;
@@ -179,7 +179,7 @@ function filter({
      */
     for (let i = 0; i < whiteListing.length; i++) {
         if (whiteListing[i].includes(getDomain(currentUrl))) {
-            isWhiteList[tabId] = true
+            isWhiteList[tabId] = getDomain(currentUrl)
             return;
         }
     }
@@ -305,7 +305,7 @@ chrome.runtime.onConnect.addListener(function(port) {
                     active: true
                 }, function([tab, ...tabs]) {
                     results[tab.id] = request;
-                    classify(tab.id, request);
+                    classify(tab.id, request, tab.url);
                 });
             });
 

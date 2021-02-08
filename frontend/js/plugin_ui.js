@@ -25,7 +25,7 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
   var url = new URL(tab.url)
   var domain = url.hostname
 
-  if(background.isWhiteList[tab.id]) {
+  if(background.isWhiteList[tab.id] == domain) {
       $("#pluginBody").hide()
       $("#isSafe").show()
       $("#isSafe .site-url").text(domain)
@@ -35,7 +35,7 @@ chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
           tabId
       });
 
-  } else if(background.isBlocked[tab.id]){
+  } else if(background.isBlocked[tab.id] == domain){
       $("#pluginBody").hide()
       $("#isPhishing").show()
       $("#isPhishing .site-url").text(background.isBlocked[tab.id])

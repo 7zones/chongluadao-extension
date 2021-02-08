@@ -305,17 +305,3 @@ if (iframes.length == 0) {
 //---------------------- Sending the result  ----------------------
 let mlPort = chrome.runtime.connect({ name: ML_PORT_NAME });
 mlPort.postMessage({ request: result })
-// chrome.runtime.sendMessage(result, function (response) {
-//   console.log(result);
-//   //console.log(response);
-// });
-
-
-
-// chrome.runtime.onMessage.addListener(
-//   function (request, sender, sendResponse) {
-//     if (request.action == "alert_user") {
-//       console.log("Cảnh báo!!! Website này không an toàn");
-//     }
-//   }
-// );
