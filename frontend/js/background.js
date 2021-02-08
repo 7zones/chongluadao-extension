@@ -111,66 +111,71 @@ function filter({
 
     let sites = blackListing
     for (let i = 0; i < sites.length; ++i) {
-        let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
-        let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
-        let trail = site.substr(site.length - 2);
+        try {
+            let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
+            let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
+            let trail = site.substr(site.length - 2);
 
-        if (trail == "/*") {
-            site = site.substr(0, site.length - 2);
-            appendix = "(?:$|/.*$)";
-        }
+            if (trail == "/*") {
+                site = site.substr(0, site.length - 2);
+                appendix = "(?:$|/.*$)";
+            }
 
-        site = "^(?:[a-z0-9\-_]+:\/\/)?(?:www\.)?" + site + appendix;
-        let regex = new RegExp(site, "i");
-        let match = currentUrl.match(regex);
+            site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
+            let regex = new RegExp(site, "i");
+            let match = currentUrl.match(regex);
 
-        // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
-        let suffix = false
-        if (sites[i].match(/(?:id=)(\d+)/) && currentUrl.match(/(?:id=)(\d+)/))
-            suffix = (sites[i].match(/(?:id=)(\d+)/)[1] == currentUrl.match(/(?:id=)(\d+)/)[1])
+            // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
+            let suffix = false
+            if (sites[i].match(/(?:id=)(\d+)/) && currentUrl.match(/(?:id=)(\d+)/))
+                suffix = (sites[i].match(/(?:id=)(\d+)/)[1] == currentUrl.match(/(?:id=)(\d+)/)[1])
 
-        if ((match && match.length > 0) || suffix) {
-            if (inputBlockLenient) {
-                let access = localStorage.getItem(sites[i]);
-                if (access) {
-                    let num = parseFloat(access);
-                    let time = Date.now();
-                    if (num > time) {
-                        break;
-                    } else {
-                        localStorage.removeItem(sites[i]);
+            if ((match && match.length > 0) || suffix) {
+                if (inputBlockLenient) {
+                    let access = localStorage.getItem(sites[i]);
+                    if (access) {
+                        let num = parseFloat(access);
+                        let time = Date.now();
+                        if (num > time) {
+                            break;
+                        } else {
+                            localStorage.removeItem(sites[i]);
+                        }
                     }
                 }
-            }
 
-            if (frameId !== 0) {
-                if (inputBlockFrames) {
-                    return {
-                        cancel: true
-                    };
+                if (frameId !== 0) {
+                    if (inputBlockFrames) {
+                        return {
+                            cancel: true
+                        };
+                    }
+                    return;
                 }
-                return;
+                let message = {
+                    site: currentUrl,
+                    match: sites[i],
+                    title: currentUrl,
+                    lenient: inputBlockLenient,
+                    favicon: "https://www.google.com/s2/favicons?domain=" + currentUrl,
+                };
+                let url = chrome.extension.getURL("blocking.html") + "#" + JSON.stringify(message);
+                isBlocked[tabId] = currentUrl
+
+                // TODO: This still not work, must find another way to change icon to red:
+                chrome.browserAction.setIcon({
+                    path: '../assets/cldvn_red.png',
+                    tabId
+                });
+
+                return {
+                    redirectUrl: url
+                };
             }
-            let message = {
-                site: currentUrl,
-                match: sites[i],
-                title: currentUrl,
-                lenient: inputBlockLenient,
-                favicon: "https://www.google.com/s2/favicons?domain=" + currentUrl,
-            };
-            let url = chrome.extension.getURL("blocking.html") + "#" + JSON.stringify(message);
-            isBlocked[tabId] = currentUrl
-
-            // TODO: This still not work, must find another way to change icon to red:
-            chrome.browserAction.setIcon({
-                path: '../assets/cldvn_red.png',
-                tabId
-            });
-
-            return {
-                redirectUrl: url
-            };
+        } catch(e) {
+            break;
         }
+
     }
 
     /**
@@ -179,6 +184,7 @@ function filter({
      */
     for (let i = 0; i < whiteListing.length; i++) {
         if (whiteListing[i].includes(getDomain(currentUrl))) {
+
             isWhiteList[tabId] = getDomain(currentUrl)
             return;
         }
