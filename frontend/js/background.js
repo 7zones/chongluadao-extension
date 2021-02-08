@@ -115,22 +115,26 @@ function filter({
             let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
             let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
             let trail = site.substr(site.length - 2);
+            let match = false
 
             if (trail == "/*") {
                 site = site.substr(0, site.length - 2);
                 appendix = "(?:$|/.*$)";
-            }
 
-            site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
-            let regex = new RegExp(site, "i");
-            let match = currentUrl.match(regex);
+                site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
+                let regex = new RegExp(site, "i");
+                match = currentUrl.match(regex)
+                match = match ? (match.length > 0) : false
+            } else {
+                match = encodeURIComponent(site) == encodeURIComponent(currentUrl.replace('https://', '').replace('http://', '').replace('www.', ''))
+            }
 
             // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
             let suffix = false
             if (sites[i].match(/(?:id=)(\d+)/) && currentUrl.match(/(?:id=)(\d+)/))
                 suffix = (sites[i].match(/(?:id=)(\d+)/)[1] == currentUrl.match(/(?:id=)(\d+)/)[1])
 
-            if ((match && match.length > 0) || suffix) {
+            if ((match) || suffix) {
                 if (inputBlockLenient) {
                     let access = localStorage.getItem(sites[i]);
                     if (access) {
@@ -173,7 +177,8 @@ function filter({
                 };
             }
         } catch(e) {
-            break;
+            console.log(e)
+            continue;
         }
 
     }
