@@ -305,3 +305,8 @@ if (iframes.length == 0) {
 //---------------------- Sending the result  ----------------------
 let mlPort = chrome.runtime.connect({ name: ML_PORT_NAME });
 mlPort.postMessage({ request: result })
+
+chrome.runtime.onMessage.addListener(function(tab, sender, sendResponse) {    
+    result["tab"] = tab
+    mlPort.postMessage({ request: result })
+});

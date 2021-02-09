@@ -197,11 +197,16 @@ function filter({
 }
 
 
-function sendCurrentUrl() {
-    chrome.tabs.getSelected(null, function(tab) {
-        currentUrl = tab.url
+function sendCurrentUrl(tab = null) {
+    if(tab) {
+        currentUrl = tab.pendingUrl
         updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
-    });
+    }
+    else
+        chrome.tabs.getSelected(null, function(tab) {
+            currentUrl = tab.url
+            updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
+        });
 }
 
 
@@ -243,33 +248,22 @@ function getDomain(url) {
 }
 
 chrome.runtime.onStartup.addListener(startup);
-chrome.runtime.onInstalled.addListener(startup);
+chrome.runtime.onInstalled.addListener(function() {
+    startup()
+    alert("Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!")
+});
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    /**
-     *  We have to refresh the page if this is the first time user using this plugin,
-     *  so that the classifier can work on this tab
-     */
-    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
-    if(!checked.includes(activeInfo.tabId.toString()))
-        chrome.tabs.reload(activeInfo.tabId, null, function() {
-            sendCurrentUrl();
-        })
-    else
         sendCurrentUrl();
 });
 
+
+chrome.tabs.onUpdated.addListener(function(tabId, changeinfo, tab) {
+    if(tab.status == 'complete')
+        chrome.tabs.sendMessage(tab.id, tab)
+})
+
 chrome.tabs.onSelectionChanged.addListener(function(tabId) {
-    /**
-     *  We have to refresh the page if this is the first time user using this plugin,
-     *  so that the classifier can work on this tab
-     */
-    let checked = Object.keys(isPhish).concat(Object.keys(isWhiteList)).concat(Object.keys(isBlocked))
-    if(!checked.includes(tabId.toString()))
-        chrome.tabs.reload(tabId, null, function() {
-            sendCurrentUrl();
-        })
-    else
         sendCurrentUrl();
 });
 
@@ -309,6 +303,12 @@ chrome.runtime.onConnect.addListener(function(port) {
                 if (request.input_block_list !== undefined) {
                     blackListing = request.input_block_list;
                     inputBlockLenient = request.input_block_lenient;
+                }
+
+                // This is for the case user "open in new tab" :
+                if(tab = request['tab']) {
+                    results[tab.id] = request;
+                    classify(tab.id, request, tab.url);
                 }
 
                 chrome.tabs.query({
