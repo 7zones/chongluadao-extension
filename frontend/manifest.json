@@ -4,10 +4,7 @@
   "description": "chong lua dao",
   "permissions": [
     "tabs",
-    "activeTab",
-    "declarativeContent",
     "storage",
-    "webNavigation",
     "webRequestBlocking",
     "webRequest",
     "*://*/*"],
