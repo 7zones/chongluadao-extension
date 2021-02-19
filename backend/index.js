@@ -274,8 +274,8 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
                 },
                 data:  {
                     client: {
-                      clientId: "testing",
-                      clientVersion: "0.0.1"
+                      clientId: "chongluadao",
+                      clientVersion: "1.0.0"
                     },
                     threatInfo: {
                       threatTypes: [ "MALWARE", 
