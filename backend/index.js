@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const { Parser } = require('json2csv');
 const morgan = require('morgan');
+const axios = require('axios');
 
 const { MongoClient } = require('mongodb');
 
@@ -262,9 +263,43 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
     } else {
         url = url.substring(0, indices[0])
     }
-
+    
     db.collection('blacklist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
-        res.status(status.OK).send((result.length > 0) ? "blacklist": "whitelist");
+        if(result.length === 0) {
+            axios({
+                method: 'post',
+                url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                data:  {
+                    client: {
+                      clientId: "testing",
+                      clientVersion: "0.0.1"
+                    },
+                    threatInfo: {
+                      threatTypes: [ "MALWARE", 
+                                     "SOCIAL_ENGINEERING", 
+                                     "UNWANTED_SOFTWARE", 
+                                     "MALICIOUS_BINARY", 
+                                     "POTENTIALLY_HARMFUL_APPLICATION"],
+                      platformTypes: ["ANY_PLATFORM"],
+                      threatEntryTypes: ["URL"],
+                      threatEntries: [
+                        { url: url + "/" }
+                      ]
+                    }
+                }
+            }).then((gRes) => {
+              if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+                res.status(status.OK).send({type: "blacklist"});
+              } else {
+                res.status(status.OK).send({type: "whitelist"});  
+              }
+            });
+        } else {
+            res.status(status.OK).send({type: "blacklist"});
+        }   
     })
 });
 
