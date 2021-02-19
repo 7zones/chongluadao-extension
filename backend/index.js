@@ -247,6 +247,27 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
     });
 });
 
+app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
+    let { url } = req.body;
+
+    // Preprocess URL
+    const indices = [];
+
+    for(let i=0; i < url.length; i++) {
+        if (url[i] === "/") indices.push(i);
+    }
+
+    if(url.includes('http') || url.includes('https')) {
+        url = url.substring(0, indices[2])
+    } else {
+        url = url.substring(0, indices[0])
+    }
+
+    db.collection('blacklist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+        res.status(status.OK).send((result.length > 0) ? "blacklist": "whitelist");
+    })
+});
+
 function validateSubmitting(params) {
     const { rating, url } = params;
     const expUrl = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
