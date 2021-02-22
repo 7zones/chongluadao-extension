@@ -12,7 +12,7 @@ const fs = require('fs');
 const { Parser } = require('json2csv');
 const morgan = require('morgan');
 const axios = require('axios');
-
+const { readFile } = require('fs');
 const { MongoClient } = require('mongodb');
 
 const fields = ['time','rating', 'url', 'ip', 'client'];
@@ -258,47 +258,345 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
         if (url[i] === "/") indices.push(i);
     }
 
+    let rawUrl = url;
     if(url.includes('http') || url.includes('https')) {
         url = url.substring(0, indices[2])
+        if(url.includes('http')) {
+            url = url.substring(8, url.length)
+        } else if(url.includes('https')) {
+            url = url.substring(9, url.length)
+        }
     } else {
         url = url.substring(0, indices[0])
     }
     
-    db.collection('blacklist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+    db.collection('blacklist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {        
         if(result.length === 0) {
-            axios({
-                method: 'post',
-                url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                data:  {
-                    client: {
-                      clientId: "chongluadao",
-                      clientVersion: "1.0.0"
+            // Google API Promise
+            let googleSafeCheckPromise = new Promise((resolve, reject) => {
+                axios({
+                    method: 'post',
+                    url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
+                    headers: {
+                        "Content-Type": "application/json"
                     },
-                    threatInfo: {
-                      threatTypes: [ "MALWARE", 
-                                     "SOCIAL_ENGINEERING", 
-                                     "UNWANTED_SOFTWARE", 
-                                     "MALICIOUS_BINARY", 
-                                     "POTENTIALLY_HARMFUL_APPLICATION"],
-                      platformTypes: ["ANY_PLATFORM"],
-                      threatEntryTypes: ["URL"],
-                      threatEntries: [
-                        { url: url + "/" }
-                      ]
+                    data:  {
+                        client: {
+                          clientId: "chongluadao",
+                          clientVersion: "1.0.0"
+                        },
+                        threatInfo: {
+                          threatTypes: [ "MALWARE", 
+                                         "SOCIAL_ENGINEERING", 
+                                         "UNWANTED_SOFTWARE", 
+                                         "MALICIOUS_BINARY", 
+                                         "POTENTIALLY_HARMFUL_APPLICATION"],
+                          platformTypes: ["ANY_PLATFORM"],
+                          threatEntryTypes: ["URL"],
+                          threatEntries: [
+                            { url: url + "/" }
+                          ]
+                        }
                     }
+                }).then((gRes) => {
+                  if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+                    resolve(false);
+                  } else {
+                    resolve(true);
+                  }
+                });
+            })
+
+            // https://www.phishtank.com/developer_info.php
+            let phishtankPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            // https://github.com/mypdns/matrix/tree/master/source
+            let matrixPhishPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/phishing/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            let matrixAdsPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/adware/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            let matrixSpywarePromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/spyware/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+            
+            let matrixScammingPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/scamming/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            let matrixPornPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/porno-sites/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            let matrixMaliciousPromise = new Promise((resolve, reject) => {
+                    axios({
+                        method: 'get',
+                        url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/malicious/domains.list`,
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                    }).then((res) => {
+                      if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                      }
+                    });
+            })
+
+            // https://github.com/Segasec/feed
+            let segasecDomainPromise = new Promise((resolve, reject) => {
+                axios({
+                    method: 'get',
+                    url: `https://raw.githubusercontent.com/Segasec/feed/master/phishing-domains.json`,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                }).then((res) => {
+                  if(res && res.data) {
+                    if(res.data.includes(url)) {
+                        resolve(false);
+                    } else {
+                        resolve(true);
+                    }
+                  } else {
+                    resolve(true);
+                  }
+                });
+            })
+
+            let segasecUrlPromise = new Promise((resolve, reject) => {
+                axios({
+                    method: 'get',
+                    url: `https://raw.githubusercontent.com/Segasec/feed/master/phishing-urls.json`,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                }).then((res) => {
+                  if(res && res.data) {
+                    if(res.data.includes(rawUrl)) {
+                        resolve(false);
+                    } else {
+                        resolve(true);
+                    }
+                  } else {
+                    resolve(true);
+                  }
+                });
+            })
+            
+            // https://hell.sh/hosts/
+            let hellShHostsPromise = new Promise((resolve, reject) => {
+                axios({
+                    method: 'get',
+                    url: `https://hell.sh/hosts/domains.txt`,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                }).then((res) => {
+                    if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                    }
+                });
+            })
+
+            // https://oisd.nl/?p=dl
+            let oisdPromise = new Promise((resolve, reject) => {
+                axios({
+                    method: 'get',
+                    url: `https://dbl.oisd.nl/`,
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                }).then((res) => {
+                    if(res && res.data) {
+                        if(res.data.split('\n').includes(url)) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                      } else {
+                        resolve(true);
+                    }
+                });
+            })
+
+            // https://energized.pro/
+            // let energizedPromise = new Promise((resolve, reject) => {
+            //     axios({
+            //         method: 'get',
+            //         url: `https://block.energized.pro/basic/formats/one-line.txt`,
+            //         headers: {
+            //             "Content-Type": "application/json"
+            //         },
+            //     }).then((res) => {
+            //         if(res && res.data) {
+            //             const rawData = res.data.split('\n');
+            //             console.log(rawData[59].split(",")[0])
+            //             if(rawData[59].split(",").includes(url)) {
+            //                 resolve(false);
+            //             } else {
+            //                 resolve(true);
+            //             }
+            //           } else {
+            //             resolve(true);
+            //         }
+            //     });
+            // })
+            // let energizedPromise = new Promise((resolve, reject) => {
+            //     readFile('./config/energizedData.txt', (err, data) => {
+            //         if (err) throw err;
+            //         if (data) {
+            //             const rawData = data.toString().split('\n');
+            //             if(rawData[59].split(",").includes(url)) {
+            //                 resolve(false);
+            //             }
+            //         } else {
+            //             resolve(true)
+            //         }
+            //     })
+            // })
+            
+            Promise.all([
+                    googleSafeCheckPromise, 
+                    phishtankPromise, 
+                    matrixPhishPromise, 
+                    matrixAdsPromise, 
+                    matrixSpywarePromise, 
+                    matrixScammingPromise,
+                    matrixPornPromise,
+                    matrixMaliciousPromise,
+                    segasecDomainPromise,
+                    segasecUrlPromise,
+                    hellShHostsPromise,
+                    oisdPromise,
+                    // energizedPromise,
+                ]).then((result) => {
+                if(result.every(val => val == true)) {
+                    db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+                        if(result.length > 0) {
+                            res.status(status.OK).send({type: "safe"});
+                        } else {
+                            res.status(status.OK).send({type: "nodata"});
+                        }
+                    })
+                } else {
+                    res.status(status.OK).send({type: "unsafe"});
                 }
-            }).then((gRes) => {
-              if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
-                res.status(status.OK).send({type: "blacklist"});
-              } else {
-                res.status(status.OK).send({type: "whitelist"});  
-              }
             });
         } else {
-            res.status(status.OK).send({type: "blacklist"});
+            res.status(status.OK).send({type: "unsafe"});
         }   
     })
 });
