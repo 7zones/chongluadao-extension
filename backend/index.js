@@ -12,6 +12,8 @@ const fs = require('fs');
 const { Parser } = require('json2csv');
 const morgan = require('morgan');
 const axios = require('axios');
+const multer = require('multer');
+const _ = require('lodash/array');
 const { readFile } = require('fs');
 const { MongoClient } = require('mongodb');
 
@@ -41,6 +43,7 @@ app.use(bodyParser.json({limit: '1mb'}));
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+const upload = multer();
 
 // Enable logging
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
@@ -213,6 +216,9 @@ app.get(`/${config.get("app.version")}/:typelist`, function(req, res) {
         case "whitelist":
             type = "whitelist"
             break;
+        case "pornlist":
+            type = "pornlist"
+            break;
         default:
             res.status(400).send(req.params.typelist + " is not a valid type of list")
     }
@@ -247,6 +253,35 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
         }
     });
 });
+
+app.post(`/${config.get("app.version")}/importFiles/:typelist`,  upload.single('file'), async (req, res) => {
+    const rawData = req.file.buffer.toString();
+    const chunkData = _.chunk(JSON.parse(rawData), 1000);
+    switch (req.params.typelist) {
+        case "blacklist":
+            type = "blacklist"
+            break;
+        case "whitelist":
+            type = "whitelist"
+            break;
+        case "pornlist":
+            type = "pornlist"
+            break;
+        default:
+            res.status(400).send(req.params.typelist + " is not a valid type of list")
+    }
+
+
+    for (let i = 0; i < chunkData.length; i++) {
+        try {
+            await db.collection(type).insertMany(chunkData[i]);
+        } catch(err) {
+            console.log(err);
+        }
+    }
+
+    res.status(status.OK).send({message: 'INSERT SUCCESS'});
+})
 
 app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
     let { url } = req.body;
