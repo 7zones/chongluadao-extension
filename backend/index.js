@@ -24,6 +24,7 @@ const parser = new Parser(opts);
 var refreshTokens = [];
 const accessTokenSecret = config.get("auth.accessTokenSecret");
 const refreshTokenSecret = config.get("auth.refreshTokenSecret");
+const maxLengthUrl = config.get("maxLengthUrl");
 
 const apiLimiter = rateLimit({
     windowMs: 55 * 60 * 1000,
@@ -286,6 +287,9 @@ app.post(`/${config.get("app.version")}/importFiles/:typelist`,  upload.single('
 app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
     let { url } = req.body;
 
+    if(!url || url.length > maxLengthUrl) {
+        return res.sendStatus(status.BAD_REQUEST);
+    }
     db.collection('blacklist').find().toArray().then(result => {
         // Check if current url exist in our Blacklist :
         for(let blacksite of result) {
