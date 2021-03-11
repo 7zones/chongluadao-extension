@@ -20,7 +20,10 @@ const refreshTokenSecret = process.env.AUTH_REFRESH_TOKEN_SECRET;
 const authExpiration = process.env.AUTH_EXPIRATION;
 const appVersion = process.env.APP_VERSION;
 
-mongoose.connect(`mongodb://${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`, { useNewUrlParser: true, useCreateIndex: true })
+mongoose.connect(
+  `mongodb://${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+  { useNewUrlParser: true, useCreateIndex: true },
+);
 //mongoose.connect(`mongodb://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`, { useNewUrlParser: true, useCreateIndex: true })
 const db = mongoose.connection;
 @Injectable()
@@ -141,7 +144,6 @@ export class AppService {
     if (msg.indexOf('ok') == -1) {
       throw new BadRequestException(msg);
     } else {
-      console.log(params)
       if (params) {
         await db.collection('rating').insertOne(params);
 
@@ -157,8 +159,25 @@ export class AppService {
     return 'postRate';
   }
 
-  typelist(): string {
-    return 'typelist';
+  async getTypelist(typelist: string) {
+    let type = null;
+    switch (typelist) {
+      case 'blacklist':
+        type = 'blacklist';
+        break;
+      case 'whitelist':
+        type = 'whitelist';
+        break;
+      case 'pornlist':
+        type = 'pornlist';
+        break;
+      default:
+        throw new BadRequestException(
+          typelist + ' is not a valid type of list',
+        );
+    }
+    const rs = await db.collection(type).find().toArray();
+    return rs;
   }
 
   postResId(): string {

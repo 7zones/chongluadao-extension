@@ -5,14 +5,18 @@ import {
   ForbiddenException,
   Get,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { BaseSessionDTO, InitSessionDTO, RateDTO, TokenDTO } from './dto/app.dto';
-
+import {
+  BaseSessionDTO,
+  InitSessionDTO,
+  RateDTO,
+  TokenDTO,
+} from './dto/app.dto';
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -20,9 +24,9 @@ export class AppController {
   @Post('initSession')
   async initSession(@Body() initSessionDTO: InitSessionDTO, @Res() res) {
     const rs = await this.appService.initSession(initSessionDTO);
-    if (rs.constructor.name === 'InitSessionResSuccess') {
+    if (rs.token) {
       res.status(HttpStatus.OK).send(rs);
-    } else if (rs.constructor.name === 'InitSessionResErr') {
+    } else {
       res.status(HttpStatus.UNAUTHORIZED).send(rs);
     }
   }
@@ -42,9 +46,7 @@ export class AppController {
     } catch (err) {
       if (err instanceof ForbiddenException) {
         res.sendStatus(HttpStatus.FORBIDDEN);
-      }
-
-      else res.json(err);
+      } else res.json(err);
     }
   }
 
@@ -65,7 +67,7 @@ export class AppController {
     try {
       const rs = await this.appService.postRate(rateDTO, req.ip);
       return res.status(HttpStatus.OK).send(rs);
-    } catch(err) {
+    } catch (err) {
       if (err instanceof BadRequestException) {
         const rs: BaseSessionDTO = {
           status: HttpStatus.BAD_REQUEST,
@@ -74,16 +76,20 @@ export class AppController {
           message: err.message,
         };
         res.status(HttpStatus.BAD_REQUEST).send(rs);
-      }
-
-      else res.json(err);
+      } else res.json(err);
     }
-    
   }
 
   @Get(':typelist')
-  typelist(): string {
-    return this.appService.typelist();
+  async getTypelist(@Param('typelist') typelist: string, @Res() res) {
+    try {
+      const rs = await this.appService.getTypelist(typelist);
+      return res.status(HttpStatus.OK).send(rs);
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        res.status(HttpStatus.BAD_REQUEST).send(err.message);
+      } else res.json(err);
+    }
   }
 
   @Post('res/:resId')
