@@ -1,7 +1,18 @@
-import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
-import { BaseSessionDTO, InitSessionDTO, TokenDTO } from './dto/app.dto';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
+import {
+  BaseSessionDTO,
+  InitSessionDTO,
+  RateDTO,
+  TokenDTO,
+} from './dto/app.dto';
 import { getClients } from './shared/const';
 import * as jwt from 'jsonwebtoken';
+import * as mongoose from 'mongoose';
 
 const clients = getClients();
 const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET;
@@ -9,6 +20,9 @@ const refreshTokenSecret = process.env.AUTH_REFRESH_TOKEN_SECRET;
 const authExpiration = process.env.AUTH_EXPIRATION;
 const appVersion = process.env.APP_VERSION;
 
+mongoose.connect(`mongodb://${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`, { useNewUrlParser: true, useCreateIndex: true })
+//mongoose.connect(`mongodb://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`, { useNewUrlParser: true, useCreateIndex: true })
+const db = mongoose.connection;
 @Injectable()
 export class AppService {
   refreshTokens = [];
@@ -117,11 +131,29 @@ export class AppService {
       status: HttpStatus.OK,
       version: appVersion,
       requestedOn: new Date(),
-    }
+    };
     return res;
   }
 
-  postRate(): string {
+  async postRate(rateDTO: RateDTO, reqIp) {
+    const params = { time: new Date(), ...rateDTO, ip: reqIp };
+    const msg = this.validateSubmitting(params);
+    if (msg.indexOf('ok') == -1) {
+      throw new BadRequestException(msg);
+    } else {
+      console.log(params)
+      if (params) {
+        await db.collection('rating').insertOne(params);
+
+        const rs: BaseSessionDTO = {
+          status: HttpStatus.OK,
+          version: appVersion,
+          requestedOn: new Date(),
+          message: 'ok',
+        };
+        return rs;
+      }
+    }
     return 'postRate';
   }
 
@@ -143,5 +175,17 @@ export class AppService {
 
   safeCheckType(): string {
     return 'safeCheckType';
+  }
+
+  validateSubmitting(params) {
+    const { rating, url } = params;
+    const expUrl = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+
+    if (rating < 1 || rating > 5) {
+      return 'Rating is out of range';
+    } else if (!url.match(new RegExp(expUrl))) {
+      return `Incorrect URL ${url}`;
+    }
+    return 'ok';
   }
 }

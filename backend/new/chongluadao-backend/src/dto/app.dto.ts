@@ -20,3 +20,9 @@ export class BaseSessionDTO {
 
   status?: number;
 }
+
+export class RateDTO {
+  rating: number;
+
+  url: string;
+}

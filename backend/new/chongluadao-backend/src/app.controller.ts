@@ -1,15 +1,17 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
   HttpStatus,
   Post,
+  Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { BaseSessionDTO, InitSessionDTO, TokenDTO } from './dto/app.dto';
+import { BaseSessionDTO, InitSessionDTO, RateDTO, TokenDTO } from './dto/app.dto';
 
 @Controller()
 export class AppController {
@@ -59,8 +61,24 @@ export class AppController {
   }
 
   @Post('rate')
-  postRate(): string {
-    return this.appService.postRate();
+  async postRate(@Body() rateDTO: RateDTO, @Req() req, @Res() res) {
+    try {
+      const rs = await this.appService.postRate(rateDTO, req.ip);
+      return res.status(HttpStatus.OK).send(rs);
+    } catch(err) {
+      if (err instanceof BadRequestException) {
+        const rs: BaseSessionDTO = {
+          status: HttpStatus.BAD_REQUEST,
+          version: process.env.APP_VERSION,
+          requestedOn: new Date(),
+          message: err.message,
+        };
+        res.status(HttpStatus.BAD_REQUEST).send(rs);
+      }
+
+      else res.json(err);
+    }
+    
   }
 
   @Get(':typelist')
