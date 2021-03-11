@@ -1,16 +1,5 @@
-import {
-  ForbiddenException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
-import {
-  CloseSessionSuccess,
-  InitSessionDTO,
-  InitSessionResErr,
-  InitSessionResSuccess,
-  TokenDTO,
-  TokenResSuccess,
-} from './dto/app.dto';
+import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
+import { BaseSessionDTO, InitSessionDTO, TokenDTO } from './dto/app.dto';
 import { getClients } from './shared/const';
 import * as jwt from 'jsonwebtoken';
 
@@ -27,7 +16,7 @@ export class AppService {
 
   async initSession(
     initSessionDTO: InitSessionDTO,
-  ): Promise<InitSessionResSuccess | InitSessionResErr> {
+  ): Promise<BaseSessionDTO | BaseSessionDTO> {
     const { app, secret } = initSessionDTO;
     const client = clients.find((u) => {
       return u.app === app && u.secret === secret;
@@ -55,7 +44,7 @@ export class AppService {
       );
 
       this.refreshTokens.push(refreshToken);
-      const res = new InitSessionResSuccess();
+      const res = new BaseSessionDTO();
       res.version = appVersion;
       res.requestedOn = new Date();
       res.token = accessToken;
@@ -63,7 +52,7 @@ export class AppService {
 
       return res;
     } else {
-      const res = new InitSessionResErr();
+      const res = new BaseSessionDTO();
       res.version = appVersion;
       res.requestedOn = new Date();
       res.message = `Client application credential incorrect. ${HttpStatus.UNAUTHORIZED}`;
@@ -72,14 +61,14 @@ export class AppService {
     }
   }
 
-  async postToken(tokenDTO: TokenDTO): Promise<TokenResSuccess> {
+  async postToken(tokenDTO: TokenDTO): Promise<BaseSessionDTO> {
     const { token } = tokenDTO;
 
     if (!this.refreshTokens.includes(token)) {
       throw new ForbiddenException();
     }
 
-    const jwtPromise = new Promise<TokenResSuccess>((resolve, reject) => {
+    const jwtPromise = new Promise<BaseSessionDTO>((resolve, reject) => {
       jwt.verify(token, refreshTokenSecret, (err, client) => {
         if (err) {
           throw new ForbiddenException();
@@ -96,7 +85,7 @@ export class AppService {
           },
         );
 
-        const res: TokenResSuccess = {
+        const res: BaseSessionDTO = {
           status: HttpStatus.OK,
           version: appVersion,
           requestedOn: new Date(),
@@ -110,15 +99,15 @@ export class AppService {
     return await jwtPromise;
   }
 
-  closeSession(tokenDTO: TokenDTO): CloseSessionSuccess {
+  closeSession(tokenDTO: TokenDTO): BaseSessionDTO {
     const { token } = tokenDTO;
-    this.refreshTokens = this.refreshTokens.filter(t => t !== token);
+    this.refreshTokens = this.refreshTokens.filter((t) => t !== token);
 
-    const res: CloseSessionSuccess = {
+    const res: BaseSessionDTO = {
       status: HttpStatus.OK,
       version: appVersion,
       requestedOn: new Date(),
-      message: "Session closed",
+      message: 'Session closed',
     };
     return res;
   }

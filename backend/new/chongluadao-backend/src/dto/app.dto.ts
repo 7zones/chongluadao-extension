@@ -4,44 +4,19 @@ export class InitSessionDTO {
   secret: string;
 }
 
-export class InitSessionResSuccess {
-  version: string;
-
-  requestedOn: Date;
-
-  token: string;
-
-  refresh: string;
-}
-
-export class InitSessionResErr {
-  version: string;
-
-  requestedOn: Date;
-
-  message: string;
-}
-
 export class TokenDTO {
   token: string;
 }
-
-export class TokenResSuccess {
-  status: number;
-
+export class BaseSessionDTO {
   version: string;
 
   requestedOn: Date;
 
-  token: string;
-}
+  token?: string;
 
-export class CloseSessionSuccess {
-  status: number;
+  refresh?: string;
 
-  version: string;
+  message?: string;
 
-  requestedOn: Date;
-
-  message: string;
+  status?: number;
 }
