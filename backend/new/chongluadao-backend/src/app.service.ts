@@ -112,8 +112,13 @@ export class AppService {
     return res;
   }
 
-  getPing(): string {
-    return 'getPing';
+  getPing(): BaseSessionDTO {
+    const res: BaseSessionDTO = {
+      status: HttpStatus.OK,
+      version: appVersion,
+      requestedOn: new Date(),
+    }
+    return res;
   }
 
   postRate(): string {

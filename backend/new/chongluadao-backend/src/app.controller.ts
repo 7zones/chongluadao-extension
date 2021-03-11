@@ -9,7 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { InitSessionDTO, TokenDTO } from './dto/app.dto';
+import { BaseSessionDTO, InitSessionDTO, TokenDTO } from './dto/app.dto';
 
 @Controller()
 export class AppController {
@@ -47,14 +47,15 @@ export class AppController {
   }
 
   @Post('closeSession')
-  closeSession(@Body() tokenDTO: TokenDTO, @Res() res) {
+  closeSession(@Body() tokenDTO: TokenDTO, @Res() res): BaseSessionDTO {
     const rs = this.appService.closeSession(tokenDTO);
-    res.status(HttpStatus.OK).send(rs);
+    return res.status(HttpStatus.OK).send(rs);
   }
 
   @Get('ping')
-  getPing(): string {
-    return this.appService.getPing();
+  getPing(@Res() res): BaseSessionDTO {
+    const rs = this.appService.getPing();
+    return res.status(HttpStatus.OK).send(rs);
   }
 
   @Post('rate')
