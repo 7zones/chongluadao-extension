@@ -4,6 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import {
+  CloseSessionSuccess,
   InitSessionDTO,
   InitSessionResErr,
   InitSessionResSuccess,
@@ -109,8 +110,17 @@ export class AppService {
     return await jwtPromise;
   }
 
-  closeSession(): string {
-    return 'closeSession';
+  closeSession(tokenDTO: TokenDTO): CloseSessionSuccess {
+    const { token } = tokenDTO;
+    this.refreshTokens = this.refreshTokens.filter(t => t !== token);
+
+    const res: CloseSessionSuccess = {
+      status: HttpStatus.OK,
+      version: appVersion,
+      requestedOn: new Date(),
+      message: "Session closed",
+    };
+    return res;
   }
 
   getPing(): string {

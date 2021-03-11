@@ -47,8 +47,9 @@ export class AppController {
   }
 
   @Post('closeSession')
-  closeSession(): string {
-    return this.appService.closeSession();
+  closeSession(@Body() tokenDTO: TokenDTO, @Res() res) {
+    const rs = this.appService.closeSession(tokenDTO);
+    res.status(HttpStatus.OK).send(rs);
   }
 
   @Get('ping')

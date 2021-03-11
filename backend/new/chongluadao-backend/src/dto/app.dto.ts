@@ -35,3 +35,13 @@ export class TokenResSuccess {
 
   token: string;
 }
+
+export class CloseSessionSuccess {
+  status: number;
+
+  version: string;
+
+  requestedOn: Date;
+
+  message: string;
+}
