@@ -21,7 +21,7 @@ const authExpiration = process.env.AUTH_EXPIRATION;
 const appVersion = process.env.APP_VERSION;
 
 mongoose.connect(
-  `mongodb://${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+  `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_URL}/${process.env.DB_NAME}?retryWrites=true&w=majority`,
   { useNewUrlParser: true, useCreateIndex: true },
 );
 //mongoose.connect(`mongodb://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_URL}:${process.env.DB_PORT}/${process.env.DB_NAME}`, { useNewUrlParser: true, useCreateIndex: true })
