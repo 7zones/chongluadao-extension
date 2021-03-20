@@ -1,0 +1,39 @@
+.wrap-error .header-error {
+  font-size: 130px;
+  line-height: 130px;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 20px;
+}
+
+.wrap-error .content-error h2 {
+  line-height: 50px;
+  font-size: 30px;
+}
+
+.wrap-error .content-error p {
+  font-size: 18px;
+  line-height: 40px;
+  font-weight: 400;
+}
+
+.wrap-error .content-error a {
+  position: relative;
+  color: #f63440;
+  font-weight: 600;
+}
+
+.wrap-error .content-error a:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #f63440;
+}
+
+
+.flat-row.flat-error {
+  padding: 180px 0px 189px 0px;
+}

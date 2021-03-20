@@ -1,0 +1,24 @@
+.input-custom {
+  background: #f7f8f9;
+  border: 1px solid #d3ecf4;
+  box-sizing: border-box;
+  border-radius: 5px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+
+  &:hover {
+    border: 1px solid #add8e6;
+  }
+  &:focus {
+    border: 1px solid #add8e6;
+    outline: none;
+  }
+}
+
+.btn-primary {
+  background-color: #1e8f41;
+  padding: 4px 12px;
+  color: white;
+  font-size: 1.2rem;
+}
