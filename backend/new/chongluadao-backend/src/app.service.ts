@@ -19,6 +19,7 @@ const accessTokenSecret = process.env.AUTH_ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = process.env.AUTH_REFRESH_TOKEN_SECRET;
 const authExpiration = process.env.AUTH_EXPIRATION;
 const appVersion = process.env.APP_VERSION;
+const maxLengthUrl = parseInt(process.env.MAX_LENGTH_URL);
 
 mongoose.connect(
   `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_URL}/${process.env.DB_NAME}?retryWrites=true&w=majority`,
@@ -180,16 +181,98 @@ export class AppService {
     return rs;
   }
 
-  postResId(): string {
-    return 'postResId';
-  }
-
   importFiles(): string {
     return 'importFiles';
   }
 
-  safeCheck(): string {
-    return 'safeCheck';
+  async safeCheck(url: string) {
+
+    // if(!url || url.length > process.env.MAX_LENGTH_URL) {
+    //     return res.sendStatus(status.BAD_REQUEST);
+    // }
+    // db.collection('blacklist').find().toArray().then(result => {
+    //     // Check if current url exist in our Blacklist :
+    //     for(let blacksite of result) {
+    //         let site = blacksite.url.replace('https://', '').replace('http://', '').replace('www.', '')
+    //         let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
+    //         let trail = site.substr(site.length - 2);
+    //         let match = false
+
+    //         if (trail == "/*") {
+    //             site = site.substr(0, site.length - 2);
+    //             appendix = "(?:$|/.*$)";
+    //             site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
+
+    //             let regex = new RegExp(site, "i");
+    //             match = url.match(regex)
+    //             match = match ? (match.length > 0) : false
+    //         } else {
+    //             match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''))
+    //         }
+
+    //         // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
+    //         let suffix = false
+    //         if (blacksite.url.match(/(?:id=)(\d+)/) && url.match(/(?:id=)(\d+)/))
+    //             suffix = (blacksite.url.match(/(?:id=)(\d+)/)[1] == url.match(/(?:id=)(\d+)/)[1])
+
+    //         if(match || suffix)
+    //             return res.status(status.OK).send({type: "unsafe"});
+    //     }
+
+    //     // If doesn't exists in our DB, check other APIs :
+
+    //     // Google API Promise
+    //     let googleSafeCheckPromise = new Promise((resolve, reject) => {
+    //         axios({
+    //             method: 'post',
+    //             url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
+    //             headers: {
+    //                 "Content-Type": "application/json"
+    //             },
+    //             data:  {
+    //                 client: {
+    //                   clientId: "chongluadao",
+    //                   clientVersion: "1.0.0"
+    //                 },
+    //                 threatInfo: {
+    //                   threatTypes: [ "MALWARE",
+    //                                  "SOCIAL_ENGINEERING",
+    //                                  "UNWANTED_SOFTWARE",
+    //                                  "MALICIOUS_BINARY",
+    //                                  "POTENTIALLY_HARMFUL_APPLICATION"],
+    //                   platformTypes: ["ANY_PLATFORM"],
+    //                   threatEntryTypes: ["URL"],
+    //                   threatEntries: [
+    //                     { url: url + "/" }
+    //                   ]
+    //                 }
+    //             }
+    //         }).then((gRes) => {
+    //           if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+    //             resolve(false);
+    //           } else {
+    //             resolve(true);
+    //           }
+    //         });
+    //     })
+
+    //     Promise.all([
+    //             googleSafeCheckPromise,
+    //         ]).then((result) => {
+    //         if(result.every(val => val == true)) {
+    //             db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+    //                 if(result.length > 0) {
+    //                     res.status(status.OK).send({type: "safe"});
+    //                 } else {
+    //                     res.status(status.OK).send({type: "nodata"});
+    //                 }
+    //             })
+    //         } else {
+    //             res.status(status.OK).send({type: "unsafe"});
+    //         }
+    //     });
+
+    // })
   }
 
   safeCheckType(): string {

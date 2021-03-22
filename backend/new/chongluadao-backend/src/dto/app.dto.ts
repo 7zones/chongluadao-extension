@@ -26,3 +26,7 @@ export class RateDTO {
 
   url: string;
 }
+
+export class UrlDTO {
+  url: string;
+}

@@ -16,6 +16,7 @@ import {
   InitSessionDTO,
   RateDTO,
   TokenDTO,
+  UrlDTO,
 } from './dto/app.dto';
 @Controller()
 export class AppController {
@@ -92,19 +93,14 @@ export class AppController {
     }
   }
 
-  @Post('res/:resId')
-  postResId(): string {
-    return this.appService.postResId();
-  }
-
   @Post('importFiles/:typelist')
   importFiles(): string {
     return this.appService.importFiles();
   }
 
   @Post('safecheck')
-  safeCheck(): string {
-    return this.appService.safeCheck();
+  async safeCheck(@Body() urlDTO: UrlDTO) {
+    return await this.appService.safeCheck(urlDTO.url);
   }
 
   @Post('safecheck/:type')
