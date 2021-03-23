@@ -1,7 +1,7 @@
 {
-  "name": "Chongluadao",
+  "name": "ChongLuaDao",
   "version": "1.0.01",
-  "description": "chong lua dao",
+  "description": "Tiện ích giúp bảo vệ bạn khỏi các trang web có nguy cơ lừa đảo, giả mạo, có nội dung xấu hoặc phần mềm độc hại.",
   "homepage_url": "https://chongluadao.vn/",
   "permissions": [
     "tabs",
