@@ -7,7 +7,8 @@
     "storage",
     "webRequestBlocking",
     "webRequest",
-    "*://*/*"],
+    "*://*/*"
+  ],
   "background": {
     "scripts": [
       "js/jquery.js",
@@ -20,17 +21,15 @@
   "browser_action": {
     "default_popup": "plugin_ui.html"
   },
-  "content_scripts":[
-    {
-      "matches": ["http://*/*","https://*/*"],
-      "js": ["js/jquery.js","js/features.js"]
-    }
-  ],
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["js/jquery.js", "js/features.js"]
+  }],
   "web_accessible_resources": [
     "js/blocking.js",
-		"blocking.html"
-	],
-    "incognito":"split",
+    "blocking.html"
+  ],
+  "incognito": "split",
   "icons": {
     "16": "assets/cldvn16.png",
     "32": "assets/cldvn32.png",
