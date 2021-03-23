@@ -2,6 +2,7 @@
   "name": "Chongluadao",
   "version": "1.0.01",
   "description": "chong lua dao",
+  "homepage_url": "https://chongluadao.vn/",
   "permissions": [
     "tabs",
     "storage",
