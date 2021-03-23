@@ -41,7 +41,7 @@ function classify(tabId, result, url) {
      * if this site is on whitelist, we don't need to classify it anymore
      * I return it here because don't know where to disable the ML event, should not trigger this event later
      */
-    if(isWhiteList[tabId] == url)
+    if (isWhiteList[tabId] == url)
         return;
 
     var legitimateCount = 0;
@@ -104,7 +104,7 @@ function filter({
     }
 
     // In case user decided to not blocking this site, we let them in :
-    if(localStorage.getItem("whiteList")) {
+    if (localStorage.getItem("whiteList")) {
         localStorage.removeItem("whiteList")
         return;
     }
@@ -176,7 +176,7 @@ function filter({
                     redirectUrl: url
                 };
             }
-        } catch(e) {
+        } catch (e) {
             console.log(e)
             continue;
         }
@@ -198,11 +198,10 @@ function filter({
 
 
 function sendCurrentUrl(tab = null) {
-    if(tab) {
+    if (tab) {
         currentUrl = tab.pendingUrl
         updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
-    }
-    else
+    } else
         chrome.tabs.getSelected(null, function(tab) {
             currentUrl = tab.url
             updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
@@ -250,21 +249,26 @@ function getDomain(url) {
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(function() {
     startup()
-    alert("Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!")
+    chrome.notifications.create({
+        type: 'basic',
+        iconUrl: chrome.extension.getURL('assets/logo.png'),
+        title: 'Cài đặt thành công!',
+        message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
+    });
 });
 
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-        sendCurrentUrl();
+    sendCurrentUrl();
 });
 
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeinfo, tab) {
-    if(tab.status == 'complete')
+    if (tab.status == 'complete')
         chrome.tabs.sendMessage(tab.id, tab)
 })
 
 chrome.tabs.onSelectionChanged.addListener(function(tabId) {
-        sendCurrentUrl();
+    sendCurrentUrl();
 });
 
 chrome.runtime.onConnect.addListener(function(port) {
@@ -306,7 +310,7 @@ chrome.runtime.onConnect.addListener(function(port) {
                 }
 
                 // This is for the case user "open in new tab" :
-                if(tab = request['tab']) {
+                if (tab = request['tab']) {
                     results[tab.id] = request;
                     classify(tab.id, request, tab.url);
                 }
@@ -320,7 +324,8 @@ chrome.runtime.onConnect.addListener(function(port) {
                 });
             });
 
-        default:ML_PORT_NAME
+        default:
+            ML_PORT_NAME
             break;
     }
 });

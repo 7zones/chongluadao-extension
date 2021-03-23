@@ -8,6 +8,7 @@
     "storage",
     "webRequestBlocking",
     "webRequest",
+    "notifications",
     "*://*/*"
   ],
   "background": {
