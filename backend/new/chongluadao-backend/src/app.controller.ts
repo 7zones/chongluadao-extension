@@ -63,41 +63,6 @@ export class AppController {
     return res.status(HttpStatus.OK).send(rs);
   }
 
-  @Post('rate')
-  async postRate(@Body() rateDTO: RateDTO, @Req() req, @Res() res) {
-    try {
-      const rs = await this.appService.postRate(rateDTO, req.ip);
-      return res.status(HttpStatus.OK).send(rs);
-    } catch (err) {
-      if (err instanceof BadRequestException) {
-        const rs: BaseSessionDTO = {
-          status: HttpStatus.BAD_REQUEST,
-          version: process.env.APP_VERSION,
-          requestedOn: new Date(),
-          message: err.message,
-        };
-        res.status(HttpStatus.BAD_REQUEST).send(rs);
-      } else res.json(err);
-    }
-  }
-
-  @Get(':typelist')
-  async getTypelist(@Param('typelist') typelist: string, @Res() res) {
-    try {
-      const rs = await this.appService.getTypelist(typelist);
-      return res.status(HttpStatus.OK).send(rs);
-    } catch (err) {
-      if (err instanceof BadRequestException) {
-        res.status(HttpStatus.BAD_REQUEST).send(err.message);
-      } else res.json(err);
-    }
-  }
-
-  @Post('importFiles/:typelist')
-  importFiles(): string {
-    return this.appService.importFiles();
-  }
-
   @Post('safecheck')
   async safeCheck(@Body() urlDTO: UrlDTO) {
     return await this.appService.safeCheck(urlDTO.url);
