@@ -44,34 +44,35 @@ export class TypelistService {
     let type = null;
     switch (typelist) {
       case 'blacklist':
-        type = 'blacklist';
-        break;
+        const blacklist = await this.getBlacklist();
+        return blacklist;
       case 'whitelist':
-        type = 'whitelist';
-        break;
-      case 'pornlist':
-        type = 'pornlist';
-        break;
+        const whitelist = await this.getWhitelist();
+        return whitelist;
       default:
         throw new BadRequestException(
           typelist + ' is not a valid type of list',
         );
     }
-
-    // Blacklist
-
-    return await this.blacklistLinkModel.find();
-    // const rs = await db.collection(type).find().toArray();
-    // return rs;
   }
 
-  // async getBlacklist(): BlacklistResDTO {
-  //   const domainList = await this.
-  //   const blacklistRes: BlacklistResDTO = {
-  //     domain: domainList,
-  //   }
-  //   return
-  // }
+  async getBlacklist() {
+    const domainList = await this.blacklistDomainModel.find();
+    const linkList = await this.blacklistLinkModel.find();
+    const facebookList = await this.blacklistFacebookModel.find();
+    const youtubeList = await this.blacklistYoutubeModel.find();
+    const blacklistRes = [...domainList, ...linkList, ...facebookList, ...youtubeList];
+    return blacklistRes;
+  }
+
+  async getWhitelist() {
+    const domainList = await this.whitelistDomainModel.find();
+    const linkList = await this.whitelistLinkModel.find();
+    const facebookList = await this.whitelistFacebookModel.find();
+    const youtubeList = await this.whitelistYoutubeModel.find();
+    const whitelistRes = [...domainList, ...linkList, ...facebookList, ...youtubeList];
+    return whitelistRes;
+  }
 
   // async importTxtFiles(fileName: string) {
   //   const rs = await fs.readFileSync(
