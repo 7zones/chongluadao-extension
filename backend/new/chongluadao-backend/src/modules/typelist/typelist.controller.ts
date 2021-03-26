@@ -1,4 +1,5 @@
-import { BadRequestException, Controller, Get, HttpStatus, Param, Post, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpStatus, Param, Post, Res } from '@nestjs/common';
+import { UrlDTO } from '../../dto/app.dto';
 import { TypelistService } from './typelist.service';
 
 @Controller()
@@ -18,6 +19,10 @@ export class TypelistController {
     }
   }
 
+  @Post('safecheck')
+  async safeCheck(@Body() urlDTO: UrlDTO) {
+    return await this.typeListService.safeCheck(urlDTO.url);
+  }
   // @Post('/importTxtFiles/:fileName')
   // async importTxtFiles(@Param('fileName') fileName: string) {
   //   return await this.typeListService.importTxtFiles(fileName);
