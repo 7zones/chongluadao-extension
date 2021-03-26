@@ -63,10 +63,7 @@ export class AppController {
     return res.status(HttpStatus.OK).send(rs);
   }
 
-  @Post('safecheck')
-  async safeCheck(@Body() urlDTO: UrlDTO) {
-    return await this.appService.safeCheck(urlDTO.url);
-  }
+  
 
   @Post('safecheck/:type')
   safeCheckType(): string {

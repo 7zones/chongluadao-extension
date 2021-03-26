@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+// import * as fs from 'fs';
+// import * as path from 'path';
 
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,7 +16,14 @@ import { WhitelistFacebook } from '../../type/whitelist-facebook.type';
 import { WhitelistYoutube } from '../../type/whitelist-youtube.type';
 
 // DTO
-import { BlacklistResDTO } from '../../dto/typelist-module.dto';
+import {
+  BlacklistResDTO,
+  SafeCheckResDTO,
+} from '../../dto/typelist-module.dto';
+import {
+  preProcessLinkToDomainUrl,
+  removeHttpFromLink,
+} from '../../shared/utils';
 
 @Injectable()
 export class TypelistService {
@@ -61,7 +68,12 @@ export class TypelistService {
     const linkList = await this.blacklistLinkModel.find();
     const facebookList = await this.blacklistFacebookModel.find();
     const youtubeList = await this.blacklistYoutubeModel.find();
-    const blacklistRes = [...domainList, ...linkList, ...facebookList, ...youtubeList];
+    const blacklistRes = [
+      ...domainList,
+      ...linkList,
+      ...facebookList,
+      ...youtubeList,
+    ];
     return blacklistRes;
   }
 
@@ -70,8 +82,128 @@ export class TypelistService {
     const linkList = await this.whitelistLinkModel.find();
     const facebookList = await this.whitelistFacebookModel.find();
     const youtubeList = await this.whitelistYoutubeModel.find();
-    const whitelistRes = [...domainList, ...linkList, ...facebookList, ...youtubeList];
+    const whitelistRes = [
+      ...domainList,
+      ...linkList,
+      ...facebookList,
+      ...youtubeList,
+    ];
     return whitelistRes;
+  }
+
+  async safeCheck(url: string): Promise<SafeCheckResDTO> {
+    // Proprocess url => domain
+    const domain = preProcessLinkToDomainUrl(url);
+    const linkWithoutHttp = removeHttpFromLink(url);
+    // 2 steps
+    // Check Whitelist (link, domain, facebook, youtube)
+    // Check Blacklist (link, domain, facebook, youtube)
+
+    switch (domain) {
+      case 'facebook.com':
+        return await this.handleSafeCheckLink(
+          linkWithoutHttp,
+          'facebook',
+          domain,
+        );
+      case 'youtube.com':
+        return await this.handleSafeCheckLink(
+          linkWithoutHttp,
+          'youtube',
+          domain,
+        );
+      default:
+        return await this.handleSafeCheckLink(linkWithoutHttp, '', domain);
+    }
+  }
+
+  async handleSafeCheckLink(
+    link: string,
+    linkType: string,
+    domain: string = '',
+  ): Promise<SafeCheckResDTO> {
+    const whiteListCheck = await this.checkExistedInWhiteList(
+      link,
+      linkType,
+      domain,
+    );
+
+    if (whiteListCheck.length > 0) {
+      return { type: 'safe ' };
+    } else {
+      const blackListCheck = await this.checkExistedInBlackList(
+        link,
+        linkType,
+        domain,
+      );
+      if (blackListCheck.length > 0) {
+        return { type: 'unsafe' };
+      } else return { type: 'nodata' };
+    }
+  }
+
+  async checkExistedInWhiteList(
+    link: string,
+    linkType: string,
+    domain: string = '',
+  ) {
+    switch (linkType) {
+      case 'facebook':
+        const facebookCheckList = await this.whitelistFacebookModel.find({
+          url: link,
+        });
+        return facebookCheckList;
+      case 'youtube':
+        const youtubeCheckList = await this.whitelistYoutubeModel.find({
+          url: link,
+        });
+        return youtubeCheckList;
+      default:
+        const domainCheckListPromise = this.whitelistDomainModel.find({
+          url: domain,
+        });
+        const linkCheckListPromise = this.whitelistLinkModel.find({
+          url: link,
+        });
+        const whiteListRes = await Promise.all([
+          domainCheckListPromise,
+          linkCheckListPromise,
+        ]);
+        const whiteListFlatRes = [...whiteListRes[0], ...whiteListRes[1]];
+        return whiteListFlatRes;
+    }
+  }
+
+  async checkExistedInBlackList(
+    link: string,
+    linkType: string,
+    domain: string = '',
+  ) {
+    switch (linkType) {
+      case 'facebook':
+        const facebookCheckList = await this.blacklistFacebookModel.find({
+          url: link,
+        });
+        return facebookCheckList;
+      case 'youtube':
+        const youtubeCheckList = await this.blacklistYoutubeModel.find({
+          url: link,
+        });
+        return youtubeCheckList;
+      default:
+        const domainCheckListPromise = this.blacklistDomainModel.find({
+          url: domain,
+        });
+        const linkCheckListPromise = this.blacklistLinkModel.find({
+          url: link,
+        });
+        const blackListRes = await Promise.all([
+          domainCheckListPromise,
+          linkCheckListPromise,
+        ]);
+        const blacklistFlatRes = [...blackListRes[0], ...blackListRes[1]];
+        return blacklistFlatRes;
+    }
   }
 
   // async importTxtFiles(fileName: string) {

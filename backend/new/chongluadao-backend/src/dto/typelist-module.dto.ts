@@ -4,3 +4,7 @@ export class BlacklistResDTO {
   facebookList: string[];
   youtubeList: string[];
 }
+
+export class SafeCheckResDTO {
+  type: string;
+}
