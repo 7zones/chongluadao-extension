@@ -1,6 +1,6 @@
 function test_model() {
   $.getJSON("https://raw.githubusercontent.com/picopalette/phishing-detection-plugin/master/static/classifier.json", function(clfdata) {
-    var rf = random_forest(clfdata);
+    var rf = randomForest(clfdata);
     $.getJSON("https://raw.githubusercontent.com/picopalette/phishing-detection-plugin/master/static/testdata.json", function(testdata) {
       var X = testdata['X_test'];
       var y = testdata['y_test'];
