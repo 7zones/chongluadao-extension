@@ -4,7 +4,7 @@ const gap = require('gulp-append-prepend');
 gulp.task('licenses', function (done) {
   // this is to add ChongLuaDao licenses in the production mode for the minified js
   gulp
-    .src(['!build/js/jquery.js', 'build/js/*js'], {base: './'})
+    .src(['build/js/*js', '!build/js/jquery.js'], {base: './'})
     .pipe(
       gap.prependText(`/*!
 
