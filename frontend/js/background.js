@@ -289,7 +289,12 @@ const getDomain = (url) => {
 chrome.runtime.onStartup.addListener(startup);
 chrome.runtime.onInstalled.addListener(() => {
   startup();
-  alert('Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!');
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: chrome.extension.getURL('assets/logo.png'),
+    title: 'Cài đặt thành công!',
+    message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
+  });
 });
 
 chrome.tabs.onActivated.addListener(sendCurrentUrl);
