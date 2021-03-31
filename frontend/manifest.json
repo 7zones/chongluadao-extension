@@ -1,13 +1,16 @@
 {
-  "name": "Chongluadao",
+  "name": "ChongLuaDao",
   "version": "1.0.01",
-  "description": "chong lua dao",
+  "description": "Tiện ích giúp bảo vệ bạn khỏi các trang web có nguy cơ lừa đảo, giả mạo, có nội dung xấu hoặc phần mềm độc hại.",
+  "homepage_url": "https://chongluadao.vn/",
   "permissions": [
     "tabs",
     "storage",
     "webRequestBlocking",
     "webRequest",
-    "*://*/*"],
+    "notifications",
+    "*://*/*"
+  ],
   "background": {
     "scripts": [
       "js/jquery.js",
@@ -20,17 +23,15 @@
   "browser_action": {
     "default_popup": "plugin_ui.html"
   },
-  "content_scripts":[
-    {
-      "matches": ["http://*/*","https://*/*"],
-      "js": ["js/jquery.js","js/features.js"]
-    }
-  ],
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["js/jquery.js", "js/features.js"]
+  }],
   "web_accessible_resources": [
     "js/blocking.js",
-		"blocking.html"
-	],
-    "incognito":"split",
+    "blocking.html"
+  ],
+  "incognito": "split",
   "icons": {
     "16": "assets/cldvn16.png",
     "32": "assets/cldvn32.png",
