@@ -1,336 +1,350 @@
-var results = {};
-var legitimatePercents = {};
-var isPhish = {};
-var isWhiteList = {}
-var isBlocked = {}
+/* global chrome*/
 
-var blackListing = [];
-var whiteListing = [];
-var inputBlockLenient = false;
-var inputBlockFrames = true;
+// global variables, accessed in plugin_ui.js via chrome.extension.getBackgroundPage()
+window.isWhiteList = {};
+window.isBlocked = {};
+window.results = {};
+window.isPhish = {};
+window.legitimatePercents = {};
 
-var currentUrl = "";
+// File level variables
+let blackListing = [];
+const whiteListing = [];
+let inputBlockLenient = false;
+const inputBlockFrames = true;
 
-const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME'
-const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME'
-const ML_PORT_NAME = 'ML_PORT_NAME'
+const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME';
+const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME';
+const ML_PORT_NAME = 'ML_PORT_NAME';
 
 
-function fetchLive(callback) {
-    $.getJSON("https://api.chongluadao.vn/classifier.json", function(data) {
-        chrome.storage.local.set({
-            cache: data,
-            cacheTime: Date.now()
-        }, function() {
-            callback(data);
-        });
+const decisionTree = (root) => {
+  const predictOne = (x) => {
+    let node = root;
+    while(node['type'] == 'split') {
+      const threshold = node['threshold'].split(' <= ');
+      if (x[threshold[0]] <= threshold[1]) { //Left
+        node = node['left'];
+      } else { //Right
+        node = node['right'];
+      }
+    }
+    return node['value'][0];
+  };
+
+  const predict = (X) => {
+    return X.map((row) => predictOne(row));
+  };
+
+  return {
+    'predict': predict,
+    'predictOne': predictOne
+  };
+};
+
+
+const randomForest = (clf) => {
+  const predict = (X) => {
+    let pred = [clf['estimators'].map((row) => decisionTree(row).predict(X))];
+    pred = pred[0].map((col, i) => pred.map((row) => row[i]));
+    const results = [];
+    for (const p in pred) {
+      let positive=0, negative=0;
+      for (const i in pred[p]) {
+        positive += pred[p][i][1];
+        negative += pred[p][i][0];
+      }
+      results.push([positive>=negative, Math.max(positive, negative)]);
+    }
+    return results;
+  };
+  return {
+    'predict': predict
+  };
+};
+
+
+const fetchLive = (callback) => {
+  fetch('https://api.chongluadao.vn/classifier.json')
+    .then((data) => data.json())
+    .then((data) => {
+      chrome.storage.local.set({
+        cache: data,
+        cacheTime: Date.now()
+      }, () => callback(data));
     });
-}
+};
 
-function fetchCLF(callback) {
-    chrome.storage.local.get(['cache', 'cacheTime'], function(items) {
-        if (items.cache && items.cacheTime) {
-            return callback(items.cache);
-        }
-        fetchLive(callback);
-    });
-}
 
-function classify(tabId, result, url) {
-    /**
-     * if this site is on whitelist, we don't need to classify it anymore
-     * I return it here because don't know where to disable the ML event, should not trigger this event later
-     */
-    if (isWhiteList[tabId] == url)
-        return;
-
-    var legitimateCount = 0;
-    var suspiciousCount = 0;
-    var phishingCount = 0;
-    for (var key in result) {
-        if (result[key] == "1") phishingCount++;
-        else if (result[key] == "0") suspiciousCount++;
-        else legitimateCount++;
+const fetchCLF = (callback) => {
+  chrome.storage.local.get(['cache', 'cacheTime'], (items) => {
+    if (items.cache && items.cacheTime) {
+      return callback(items.cache);
     }
-    legitimatePercents[tabId] = legitimateCount / (phishingCount + suspiciousCount + legitimateCount) * 100;
+    fetchLive(callback);
+  });
+};
 
-    if (result.length != 0) {
-        var X = [];
-        X[0] = [];
-        for (var key in result) {
-            X[0].push(parseInt(result[key]));
-        }
-        fetchCLF(function(clf) {
-            var rf = random_forest(clf);
-            y = rf.predict(X);
-            isPhish[tabId] = y[0][0];
-            //TODO: correction
-            if (isPhish[tabId] && legitimatePercents[tabId] > 60) {
-                isPhish[tabId] = false;
-            }
-            updateBadge(isPhish[tabId], legitimatePercents[tabId], tabId);
-        });
+
+const classify = (tabId, result, url)  => {
+  /**
+   * If this site is on whitelist, we don't need to classify it anymore
+   * I return it here because don't know where to disable the ML event, should not trigger this
+   * event later
+   */
+  if (window.isWhiteList[tabId] == url) {
+    return;
+  }
+
+  let legitimateCount = 0;
+  let suspiciousCount = 0;
+  let phishingCount = 0;
+  for (const key in result) {
+    if (result[key] == '1') {
+      phishingCount++;
     }
-}
-
-function startup() {
-    $.getJSON("https://api.chongluadao.vn/v1/blacklist", function(data) {
-        data.forEach(item => {
-            blackListing.push(item.url);
-        })
-    }).fail(function() {});
-
-    $.getJSON("https://api.chongluadao.vn/v1/whitelist", function(data) {
-        data.forEach(item => {
-            whiteListing.push(item.url);
-        })
-    }).fail(function() {});
-}
-
-function filter({
-    frameId,
-    url,
-    tabId
-}) {
-    let currentUrl = url;
-    if (!currentUrl ||
-        currentUrl.indexOf("chrome://") == 0 ||
-        currentUrl.indexOf(chrome.extension.getURL("/")) == 0) {
-        return; // invalid url
+    else if (result[key] == '0') {
+      suspiciousCount++;
     }
-
-    if (!blackListing) {
-        return; // no block list
-    }
-
-    // In case user decided to not blocking this site, we let them in :
-    if (localStorage.getItem("whiteList")) {
-        localStorage.removeItem("whiteList")
-        return;
-    }
-
-    let sites = blackListing
-    for (let i = 0; i < sites.length; ++i) {
-        try {
-            let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '')
-            let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
-            let trail = site.substr(site.length - 2);
-            let match = false
-
-            if (trail == "/*") {
-                site = site.substr(0, site.length - 2);
-                appendix = "(?:$|/.*$)";
-
-                site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
-                let regex = new RegExp(site, "i");
-                match = currentUrl.match(regex)
-                match = match ? (match.length > 0) : false
-            } else {
-                match = encodeURIComponent(site) == encodeURIComponent(currentUrl.replace('https://', '').replace('http://', '').replace('www.', ''))
-            }
-
-            // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
-            let suffix = false
-            if (sites[i].match(/(?:id=)(\d+)/) && currentUrl.match(/(?:id=)(\d+)/))
-                suffix = (sites[i].match(/(?:id=)(\d+)/)[1] == currentUrl.match(/(?:id=)(\d+)/)[1])
-
-            if ((match) || suffix) {
-                if (inputBlockLenient) {
-                    let access = localStorage.getItem(sites[i]);
-                    if (access) {
-                        let num = parseFloat(access);
-                        let time = Date.now();
-                        if (num > time) {
-                            break;
-                        } else {
-                            localStorage.removeItem(sites[i]);
-                        }
-                    }
-                }
-
-                if (frameId !== 0) {
-                    if (inputBlockFrames) {
-                        return {
-                            cancel: true
-                        };
-                    }
-                    return;
-                }
-                let message = {
-                    site: currentUrl,
-                    match: sites[i],
-                    title: currentUrl,
-                    lenient: inputBlockLenient,
-                    favicon: "https://www.google.com/s2/favicons?domain=" + currentUrl,
-                };
-                let url = chrome.extension.getURL("blocking.html") + "#" + JSON.stringify(message);
-                isBlocked[tabId] = currentUrl
-
-                // TODO: This still not work, must find another way to change icon to red:
-                chrome.browserAction.setIcon({
-                    path: '../assets/cldvn_red.png',
-                    tabId
-                });
-
-                return {
-                    redirectUrl: url
-                };
-            }
-        } catch (e) {
-            console.log(e)
-            continue;
-        }
-
-    }
-
-    /**
-     * Check if this site is in whitelist
-     * REMEMBER : Have to check whitelist AFTER blacklist
-     */
-    for (let i = 0; i < whiteListing.length; i++) {
-        if (whiteListing[i].includes(getDomain(currentUrl))) {
-
-            isWhiteList[tabId] = getDomain(currentUrl)
-            return;
-        }
-    }
-}
-
-
-function sendCurrentUrl(tab = null) {
-    if (tab) {
-        currentUrl = tab.pendingUrl
-        updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
-    } else
-        chrome.tabs.getSelected(null, function(tab) {
-            currentUrl = tab.url
-            updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
-        });
-}
-
-
-function updateBadge(isPhishing, legitimatePercent, tabId) {
-    const colors = {
-        "-1": "#28a745",
-        "0": "#ffeb3c",
-        "1": "#cc0000"
-    };
-
-    chrome.browserAction.setTitle({
-        title: `P:${isPhishing} per: ${legitimatePercent}`
-    });
-
-
-    if (isPhishing) {
-        chrome.browserAction.setIcon({
-            path: '../assets/cldvn_red.png',
-            tabId
-        });
-    }
-    //else(!isPhishing && parseInt(legitimatePercent) < 50)
     else {
-        chrome.browserAction.setIcon({
-            path: '../assets/cldvn128.png',
-            tabId
-        });
+      legitimateCount++;
     }
-}
+  }
+  window.legitimatePercents[tabId] = (
+    legitimateCount / (phishingCount + suspiciousCount + legitimateCount) * 100);
+
+  if (result.length) {
+    const X = [result.map((row) => parseInt(row))];
+    fetchCLF(function(clf) {
+      const rf = randomForest(clf);
+      window.isPhish[tabId] = rf.predict(X)[0][0];
+      //TODO: correction
+      if (window.isPhish[tabId] && window.legitimatePercents[tabId] > 60) {
+        window.isPhish[tabId] = false;
+      }
+      updateBadge(window.isPhish[tabId], window.legitimatePercents[tabId], tabId);
+    });
+  }
+};
+
+
+const startup = () => {
+  fetch('https://api.chongluadao.vn/v1/blacklist')
+    .then((data) => data.json())
+    .then((data) => {
+      data.forEach((item) => {
+        blackListing.push(item.url);
+      });
+    }).catch(() => {});
+
+
+  fetch('https://api.chongluadao.vn/v1/whitelist')
+    .then((data) => data.json())
+    .then((data) => {
+      data.forEach((item) => {
+        whiteListing.push(item.url);
+      });
+    }).catch(() => {});
+};
+
+
+const filter = ({frameId, url, tabId}) => {
+  // Invalid url
+  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
+    return;
+  }
+
+  // Blacklist is empty or undefined
+  if (!blackListing || !blackListing.length) {
+    return;
+  }
+
+  // In case user decided to not blocking this site, we let them in
+  if(localStorage.getItem('whiteList')) {
+    return localStorage.removeItem('whiteList');
+  }
+
+  const sites = blackListing;
+  for (let i = 0; i < sites.length; ++i) {
+    try {
+      let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '');
+      let appendix = '[/]?(?:index.[a-z0-9]+)?[/]?$';
+      const trail = site.substr(site.length - 2);
+      let match = false;
+      if (trail == '/*') {
+        site = site.substr(0, site.length - 2);
+        appendix = '(?:$|/.*$)';
+        site = `^(?:[a-z0-9\\-_]+://)?(?:www\\.)?${site}${appendix}`;
+        const regex = new RegExp(site, 'i');
+        match = url.match(regex);
+        match = match ? (match.length > 0) : false;
+      } else {
+        match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''));
+      }
+
+      // Check if the URL has suffix or not, ie https://www.facebook.com/profile.php?id=100060251539767
+      const siteSuffix = sites[i].match(/(?:id=)(\d+)/);
+      const urlSuffix = url.match(/(?:id=)(\d+)/);
+      const suffix = siteSuffix && urlSuffix && siteSuffix[1] === urlSuffix[1];
+
+      if (match || suffix) {
+        if (inputBlockLenient) {
+          const access = localStorage.getItem(sites[i]);
+          if (access) {
+            const num = parseFloat(access);
+            const time = Date.now();
+            if (num > time) {
+              break;
+            } else {
+              localStorage.removeItem(sites[i]);
+            }
+          }
+        }
+
+        if (frameId !== 0) {
+          // This will always be true?
+          if (inputBlockFrames) {
+            return {
+              cancel: true
+            };
+          }
+          return;
+        }
+
+        const message = {
+          site: url,
+          match: sites[i],
+          title: url,
+          lenient: inputBlockLenient,
+          favicon: `https://www.google.com/s2/favicons?domain=${url}`,
+        };
+        window.isBlocked[tabId] = url;
+
+        // TODO: This still not work, must find another way to change icon to red
+        chrome.browserAction.setIcon({
+          path: '../assets/cldvn_red.png',
+          tabId
+        });
+
+        const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
+        return {
+          redirectUrl: redirectUrl
+        };
+      }
+    } catch(e) {
+      console.log(e);
+      continue;
+    }
+  }
+
+  /**
+   * Check if this site is in whitelist
+   * REMEMBER : Have to check whitelist AFTER blacklist
+   */
+  for (let i = 0; i < whiteListing.length; i++) {
+    if (whiteListing[i].includes(getDomain(url))) {
+      window.isWhiteList[tabId] = getDomain(url);
+      return;
+    }
+  }
+};
+
+
+const sendCurrentUrl = (tab = null) => {
+  if(tab) {
+    return updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
+  }
+  chrome.tabs.getSelected(null, (tab) =>  {
+    updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
+  });
+};
+
+
+const updateBadge = (isPhishing, legitimatePercent, tabId) => {
+  chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`});
+  if (isPhishing) {
+    return chrome.browserAction.setIcon({
+      path: '../assets/cldvn_red.png',
+      tabId
+    });
+  }
+  //else(!isPhishing && parseInt(legitimatePercent) < 50)
+  chrome.browserAction.setIcon({
+    path: '../assets/cldvn128.png',
+    tabId
+  });
+};
 
 /**
  * function to get domain from url
  * @param  {String}     url
  * @return {String}     domain
  */
-function getDomain(url) {
-    const matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
-    return matches && matches[1];
-}
+const getDomain = (url) => {
+  const matches = url.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+  return matches && matches[1];
+};
+
 
 chrome.runtime.onStartup.addListener(startup);
-chrome.runtime.onInstalled.addListener(function() {
-    startup()
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: chrome.extension.getURL('assets/logo.png'),
-        title: 'Cài đặt thành công!',
-        message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
+chrome.runtime.onInstalled.addListener(() => {
+  startup();
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: chrome.extension.getURL('assets/logo.png'),
+    title: 'Cài đặt thành công!',
+    message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
+  });
+});
+
+chrome.tabs.onActivated.addListener(sendCurrentUrl);
+chrome.tabs.onSelectionChanged.addListener(sendCurrentUrl);
+
+
+chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
+  if(tab.status == 'complete') {
+    chrome.tabs.sendMessage(tab.id, tab);
+  }
+});
+
+chrome.runtime.onConnect.addListener((port) => {
+  switch (port.name) {
+  case REDIRECT_PORT_NAME:
+    port.onMessage.addListener((msg) => {
+      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+        chrome.tabs.update(tab.id, {url: msg.redirect});
+      });
     });
-});
-
-chrome.tabs.onActivated.addListener(function(activeInfo) {
-    sendCurrentUrl();
-});
-
-
-chrome.tabs.onUpdated.addListener(function(tabId, changeinfo, tab) {
-    if (tab.status == 'complete')
-        chrome.tabs.sendMessage(tab.id, tab)
-})
-
-chrome.tabs.onSelectionChanged.addListener(function(tabId) {
-    sendCurrentUrl();
-});
-
-chrome.runtime.onConnect.addListener(function(port) {
-    switch (port.name) {
-        case REDIRECT_PORT_NAME:
-            port.onMessage.addListener(function(msg) {
-                chrome.tabs.query({
-                    currentWindow: true,
-                    active: true
-                }, function([tab, ...tabs]) {
-                    chrome.tabs.update(tab.id, {
-                        url: msg.redirect
-                    });
-                });
-            });
-            break;
-
-        case CLOSE_TAB_PORT_NAME:
-            port.onMessage.addListener(function(msg) {
-                if (msg.close_tab) {
-                    chrome.tabs.query({
-                        currentWindow: true,
-                        active: true
-                    }, function([tab, ...tabs]) {
-                        chrome.tabs.remove(tab.id);
-                    });
-                }
-            });
-            break;
-
-        case ML_PORT_NAME:
-            port.onMessage.addListener(function(msg) {
-                const {
-                    request
-                } = msg
-                if (request.input_block_list !== undefined) {
-                    blackListing = request.input_block_list;
-                    inputBlockLenient = request.input_block_lenient;
-                }
-
-                // This is for the case user "open in new tab" :
-                if (tab = request['tab']) {
-                    results[tab.id] = request;
-                    classify(tab.id, request, tab.url);
-                }
-
-                chrome.tabs.query({
-                    currentWindow: true,
-                    active: true
-                }, function([tab, ...tabs]) {
-                    results[tab.id] = request;
-                    classify(tab.id, request, tab.url);
-                });
-            });
-
-        default:
-            ML_PORT_NAME
-            break;
-    }
+    break;
+  case CLOSE_TAB_PORT_NAME:
+    port.onMessage.addListener((msg) => {
+      if (msg.close_tab) {
+        chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+          chrome.tabs.remove(tab.id);
+        });
+      }
+    });
+    break;
+  case ML_PORT_NAME:
+    port.onMessage.addListener((msg) => {
+      const {request} = msg;
+      if (request.input_block_list !== undefined) {
+        blackListing = request.input_block_list;
+        inputBlockLenient = request.input_block_lenient;
+      }
+      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+        window.results[tab.id] = request;
+        classify(tab.id, request, tab.url);
+      });
+    });
+    break;
+  default:
+    ML_PORT_NAME;
+    break;
+  }
 });
 
 chrome.webRequest.onBeforeRequest.addListener(filter, {
-    urls: ["*://*/*"],
-    types: ["main_frame", "sub_frame"]
-}, ["blocking"]);
+  urls: ['*://*/*'],
+  types: ['main_frame', 'sub_frame']
+}, ['blocking']);
