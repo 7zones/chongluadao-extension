@@ -1,7 +1,7 @@
 // import * as fs from 'fs';
 // import * as path from 'path';
 
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, HttpService } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -24,6 +24,7 @@ import {
   preProcessLinkToDomainUrl,
   removeHttpFromLink,
 } from '../../shared/utils';
+import { RESOURCE_SAFE_CHECK } from '../../shared/const';
 
 @Injectable()
 export class TypelistService {
@@ -45,6 +46,8 @@ export class TypelistService {
     private whitelistFacebookModel: Model<WhitelistFacebook>,
     @InjectModel('WhitelistYoutube')
     private whitelistYoutubeModel: Model<WhitelistYoutube>,
+
+    private http: HttpService,
   ) {}
 
   async getTypelist(typelist: string) {
@@ -204,6 +207,154 @@ export class TypelistService {
         const blacklistFlatRes = [...blackListRes[0], ...blackListRes[1]];
         return blacklistFlatRes;
     }
+  }
+
+  async safeCheckType(url: string, type: string): Promise<SafeCheckResDTO> {
+    let result: SafeCheckResDTO = {
+      type: 'nodata',
+    };
+    switch (type) {
+      case 'phishtank':
+      case 'hellsh':
+      case 'oisd':
+      case 'energized':
+      case 'segasec':
+        result = await this.handleSafeCheckResourceGeneral(url, type);
+        break;
+      case 'matrix':
+        result = await this.handleSafeCheckResourceMatrix(url);
+        break;
+      case 'google':
+        result = await this.handleSafeCheckResourceGoogle(url);
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  }
+
+  async handleSafeCheckResourceGeneral(
+    url: string,
+    type: string,
+  ): Promise<SafeCheckResDTO> {
+    const domain = preProcessLinkToDomainUrl(url);
+    let urlResource = '';
+    switch (type) {
+      case 'phishtank':
+        urlResource = RESOURCE_SAFE_CHECK.PHISH_TANK;
+        break;
+      case 'hellsh':
+        urlResource = RESOURCE_SAFE_CHECK.HELLSH;
+        break;
+      case 'oisd':
+        urlResource = RESOURCE_SAFE_CHECK.OISD;
+        break;
+      case 'energized':
+        urlResource = RESOURCE_SAFE_CHECK.ENERGIZED;
+        break;
+      case 'segasec':
+        urlResource = RESOURCE_SAFE_CHECK.SEGASEC_DOMAIN;
+        break;
+      default:
+        return { type: 'nodata' };
+    }
+
+    const result = await this.http.get(urlResource).toPromise();
+    if (result && result.data) {
+      if (type != 'energized') {
+        if (result.data.split('\n').includes(domain)) {
+          return { type: 'unsafe' };
+        } else return { type: 'safe' };
+      }
+      // CASE ENERGIZED
+      else if (type == 'energized') {
+        const rawData = result.data.split('\n');
+        if (rawData[59].split(',').includes(domain)) {
+          return { type: 'unsafe' };
+        } else {
+          return { type: 'safe' };
+        }
+      } else if (type == 'segasec') {
+        if (result.data.includes(domain)) {
+          return { type: 'unsafe' };
+        } else return { type: 'safe' };
+      }
+    } else return { type: 'nodata' };
+  }
+
+  async handleSafeCheckResourceMatrix(url: string): Promise<SafeCheckResDTO> {
+    const domain = preProcessLinkToDomainUrl(url);
+
+    const matrixPhishPromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_PHISHING)
+      .toPromise();
+    const matrixAdsPromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_ADWARE)
+      .toPromise();
+    const matrixSpywarePromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_SPYWARE)
+      .toPromise();
+    const matrixScammingPromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_SCAMMING)
+      .toPromise();
+    const matrixPornPromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_PORN)
+      .toPromise();
+    const matrixMaliciousPromise = this.http
+      .get(RESOURCE_SAFE_CHECK.MATRIX_MALICIOUS)
+      .toPromise();
+
+    const result = await Promise.all([
+      matrixPhishPromise,
+      matrixAdsPromise,
+      matrixSpywarePromise,
+      matrixScammingPromise,
+      matrixPornPromise,
+      matrixMaliciousPromise,
+    ]);
+    if (
+      result.every(
+        (rs) => rs && rs.data && rs.data.split('\n').includes(domain),
+      )
+    )
+      return { type: 'safe' };
+    else return { type: 'unsafe' };
+  }
+
+  async handleSafeCheckResourceGoogle(url: string): Promise<SafeCheckResDTO> {
+    const domain = preProcessLinkToDomainUrl(url);
+    const gRes = await this.http
+      .post(
+        `${process.env.GCLOUD_SAFE_CHECK_URL}?key=${process.env.GCLOUD_KEY}`,
+        {
+          client: {
+            clientId: 'chongluadao',
+            clientVersion: '1.0.0',
+          },
+          threatInfo: {
+            threatTypes: [
+              'MALWARE',
+              'SOCIAL_ENGINEERING',
+              'UNWANTED_SOFTWARE',
+              'MALICIOUS_BINARY',
+              'POTENTIALLY_HARMFUL_APPLICATION',
+            ],
+            platformTypes: ['ANY_PLATFORM'],
+            threatEntryTypes: ['URL'],
+            threatEntries: [{ url: domain + '/' }],
+          },
+        },
+      )
+      .toPromise();
+    if (
+      gRes &&
+      gRes.data &&
+      gRes.data.matches &&
+      gRes.data.matches.length > 0
+    ) {
+      return { type: 'unsafe' };
+    } else return { type: 'nodata' };
   }
 
   // async importTxtFiles(fileName: string) {

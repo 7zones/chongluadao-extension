@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { HttpModule, Module } from '@nestjs/common';
 import { TypelistController } from './typelist.controller';
 import { TypelistService } from './typelist.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -23,6 +23,10 @@ import { WhitelistYoutubeSchema } from '../../model/whitelist-youtube.model';
       { name: 'WhitelistFacebook', schema: WhitelistFacebookSchema },
       { name: 'WhitelistYoutube', schema: WhitelistYoutubeSchema },
     ]),
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
   ],
   controllers: [TypelistController],
   providers: [TypelistService],
