@@ -63,10 +63,4 @@ export class AppController {
     return res.status(HttpStatus.OK).send(rs);
   }
 
-  
-
-  @Post('safecheck/:type')
-  safeCheckType(): string {
-    return this.appService.safeCheckType();
-  }
 }

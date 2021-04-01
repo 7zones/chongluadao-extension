@@ -219,8 +219,4 @@ export class AppService {
 
     // })
   }
-
-  safeCheckType(): string {
-    return 'safeCheckType';
-  }
 }
