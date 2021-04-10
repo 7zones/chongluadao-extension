@@ -1,6 +1,6 @@
 {
   "name": "ChongLuaDao",
-  "version": "1.0.01",
+  "version": "1.0.1",
   "description": "Tiện ích giúp bảo vệ bạn khỏi các trang web có nguy cơ lừa đảo, giả mạo, có nội dung xấu hoặc phần mềm độc hại.",
   "homepage_url": "https://chongluadao.vn/",
   "permissions": [
@@ -12,7 +12,7 @@
     "*://*/*"
   ],
   "background": {
-    "scripts": ["js/psl.min.js", "js/background.js", "js/hot-reload.js"],
+    "scripts": ["js/psl.min.js", "js/background.js"],
     "persistent": true
   },
   "browser_action": {
