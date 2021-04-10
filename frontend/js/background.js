@@ -1,11 +1,11 @@
 /* global chrome*/
-
 // global variables, accessed in plugin_ui.js via chrome.extension.getBackgroundPage()
 window.isWhiteList = {};
 window.isBlocked = {};
 window.results = {};
 window.isPhish = {};
 window.legitimatePercents = {};
+
 
 // File level variables
 let blackListing = [];
@@ -148,7 +148,27 @@ const startup = () => {
 };
 
 
+const safeCheck = ({frameId, url, tabId}) => {
+    const sites = blackListing;
+    const currentSite = psl.parse(url);
+
+    for (let i = 0; i < sites.length; ++i) {
+        let blackSite = (new URL(sites[i])).host;
+        let prefix = blackSite.charAt(0);                
+        /**
+         * Here we check if this blackSite is being blocked for all subdomains
+         * e.g: *.blacksite.com
+         */
+        if(prefix === "*") {
+            let blackDomain = blackSite.splice(2, blackSite.length);
+            console.log(blackDomain)
+            break;
+        }
+    }
+}
+
 const filter = ({frameId, url, tabId}) => {
+    console.log(url)
   // Invalid url
   if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
     return;
@@ -344,7 +364,7 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
-chrome.webRequest.onBeforeRequest.addListener(filter, {
+chrome.webRequest.onBeforeRequest.addListener(safeCheck, {
   urls: ['*://*/*'],
   types: ['main_frame', 'sub_frame']
 }, ['blocking']);
