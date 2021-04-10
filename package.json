@@ -19,9 +19,7 @@
     "eslint": "^7.23.0",
     "gulp": "4.0.2",
     "gulp-append-prepend": "1.0.8",
+    "webpack": "^5.31.2",
     "webpack-cli": "^3.3.12"
-  },
-  "dependencies": {
-    "webpack": "^5.31.2"
   }
 }

@@ -1,4 +1,5 @@
 /* global chrome*/
+/* global psl*/
 // global variables, accessed in plugin_ui.js via chrome.extension.getBackgroundPage()
 window.isWhiteList = {};
 window.isBlocked = {};
@@ -11,7 +12,6 @@ window.legitimatePercents = {};
 let blackListing = [];
 const whiteListing = [];
 let inputBlockLenient = false;
-const inputBlockFrames = true;
 
 const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME';
 const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME';
@@ -155,105 +155,105 @@ const startup = () => {
  * @return Redirect
  */
 const blockingFunction = (url, blackSite, tabId) => {
-    const message = {
-      site: url,
-      match: blackSite,
-      title: url,
-      lenient: inputBlockLenient,
-      favicon: `https://www.google.com/s2/favicons?domain=${url}`,
-    };
-    window.isBlocked[tabId] = url;
+  const message = {
+    site: url,
+    match: blackSite,
+    title: url,
+    lenient: inputBlockLenient,
+    favicon: `https://www.google.com/s2/favicons?domain=${url}`,
+  };
+  window.isBlocked[tabId] = url;
 
-    // TODO: This still not work, must find another way to change icon to red
-    chrome.browserAction.setIcon({
-      path: '../assets/cldvn_red.png',
-      tabId
-    });
+  // TODO: This still not work, must find another way to change icon to red
+  chrome.browserAction.setIcon({
+    path: '../assets/cldvn_red.png',
+    tabId
+  });
 
-    const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
-    return {
-      redirectUrl: redirectUrl
-    };
-}
+  const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
+  return {
+    redirectUrl: redirectUrl
+  };
+};
 
 /**
  * Method to decide if user can access an URL
  * @param {Object} details of onBeforeRequest event
  * @docs https://developer.chrome.com/docs/extensions/reference/webRequest/#event-onBeforeRequest
  */
-const safeCheck = ({frameId, url, tabId}) => {
-    // Invalid url
-    if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
-      return;
-    }
+const safeCheck = ({url, tabId}) => {
+  // Invalid url
+  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
+    return;
+  }
 
-    // Blacklist is empty or undefined
-    if (!blackListing || !blackListing.length) {
-      return;
-    }
+  // Blacklist is empty or undefined
+  if (!blackListing || !blackListing.length) {
+    return;
+  }
 
-    // In case user decided to not blocking this site, we let them in
-    if(localStorage.getItem('whiteList')) {
-      return localStorage.removeItem('whiteList');
-    }
+  // In case user decided to not blocking this site, we let them in
+  if (localStorage.getItem('whiteList')) {
+    return localStorage.removeItem('whiteList');
+  }
 
-    const sites = blackListing;
-    const currentUrl = new URL(url);
-    const currentSite = psl.parse(currentUrl.host);
-    const currentPath = currentUrl.pathname.replaceAll('/', '');
+  const sites = blackListing;
+  const currentUrl = new URL(url);
+  const currentSite = psl.parse(currentUrl.host);
+  const currentPath = currentUrl.href.replaceAll('/', '');
 
-    for (let i = 0; i < sites.length; ++i) {
-        let blackSite = new URL(sites[i]);
-        let prefix = blackSite.host.split(".")[0];
-        let suffix = blackSite.pathname
-
-        /**
-         * Here we check if this blackSite is being blocked for all subdomains
-         * format: *.blacksite.com
-         */
-        if(prefix == "%2A") {
-            let blackDomain = blackSite.host.slice(4, blackSite.host.length);
-            if(blackDomain == currentSite.domain) {
-                return blockingFunction(url, blackSite.host, tabId)
-            }
-        }
-
-        /**
-         * Now we check if this blacksite is being blocked for all url suffix
-         * format: blacksite.com/*
-         */
-        if(suffix == "/*") {
-            if(currentUrl.host === blackSite.host) {
-                return blockingFunction(url, blackSite.host, tabId)
-            }
-        }
-
-        /**
-         * If it wasn't blocked by prefix & suffix above, then we finally check if it match the pathname
-         * format: blacksite.com/this-is-path-name?query=some-stupid-query
-         */
-        if(currentPath && currentPath == blackSite.pathname.replaceAll('/', '')) {
-            console.log(currentPath);
-            return blockingFunction(url, blackSite.host, tabId)
-        }
-    }
+  for (let i = 0; i < sites.length; ++i) {
+    const blackSite = new URL(sites[i]);
+    const prefix = blackSite.host.split('.')[0];
+    const suffix = blackSite.pathname;
 
     /**
-     * Check if this site is in whitelist
-     * REMEMBER : Have to check whitelist AFTER blacklist
+     * Here we check if this blackSite is being blocked for all subdomains
+     * format: *.blacksite.com
      */
-    for (let i = 0; i < whiteListing.length; i++) {
-      if (whiteListing[i].includes(getDomain(url))) {
-        window.isWhiteList[tabId] = getDomain(url);
-        return;
+    if (prefix == '%2A') {
+      const blackDomain = blackSite.host.slice(4, blackSite.host.length);
+      if(blackDomain == currentSite.domain) {
+        return blockingFunction(url, blackSite.host, tabId);
       }
     }
 
-    return;
-}
+    /**
+     * Now we check if this blacksite is being blocked for all url suffix
+     * format: blacksite.com/*
+     */
+    if (suffix == '/*') {
+      if(currentUrl.host === blackSite.host) {
+        return blockingFunction(url, blackSite.host, tabId);
+      }
+    }
+
+    /**
+     * If it wasn't blocked by prefix & suffix above, then we finally check if it match the pathname
+     * format: blacksite.com/this-is-path-name?query=some-stupid-query
+     */
+    if(currentPath && currentPath == blackSite.href.replaceAll('/', '')) {
+      console.log(currentPath);
+      return blockingFunction(url, blackSite.host, tabId);
+    }
+  }
+
+  /**
+   * Check if this site is in whitelist
+   * REMEMBER : Have to check whitelist AFTER blacklist
+   */
+  for (let i = 0; i < whiteListing.length; i++) {
+    if (whiteListing[i].includes(getDomain(url))) {
+      window.isWhiteList[tabId] = getDomain(url);
+      return;
+    }
+  }
+
+  return;
+};
 
 const sendCurrentUrl = (tab = null) => {
-  if(tab) {
+  if (tab) {
     return updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
   }
   chrome.tabs.getSelected(null, (tab) =>  {
@@ -304,7 +304,7 @@ chrome.tabs.onSelectionChanged.addListener(sendCurrentUrl);
 
 
 chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
-  if(tab.status == 'complete') {
+  if (tab.status == 'complete') {
     chrome.tabs.sendMessage(tab.id, tab);
   }
 });
