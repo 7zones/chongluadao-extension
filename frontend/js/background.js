@@ -65,7 +65,7 @@ const randomForest = (clf) => {
 
 
 const fetchLive = (callback) => {
-  fetch('http://localhost:6969/classifier.json')
+  fetch('https://api.chongluadao.vn/classifier.json')
     .then((data) => data.json())
     .then((data) => {
       chrome.storage.local.set({
@@ -129,7 +129,7 @@ const classify = (tabId, result, url)  => {
 
 
 const startup = () => {
-  fetch('http://localhost:6969/v1/blacklist')
+  fetch('https://api.chongluadao.vn/v1/blacklist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
@@ -138,7 +138,7 @@ const startup = () => {
     }).catch(() => {});
 
 
-  fetch('http://localhost:6969/v1/whitelist')
+  fetch('https://api.chongluadao.vn/v1/whitelist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
