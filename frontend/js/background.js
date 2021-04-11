@@ -65,7 +65,7 @@ const randomForest = (clf) => {
 
 
 const fetchLive = (callback) => {
-  fetch('https://api.chongluadao.vn/classifier.json')
+  fetch('http://localhost:6969/classifier.json')
     .then((data) => data.json())
     .then((data) => {
       chrome.storage.local.set({
@@ -129,7 +129,7 @@ const classify = (tabId, result, url)  => {
 
 
 const startup = () => {
-  fetch('https://api.chongluadao.vn/v1/blacklist')
+  fetch('http://localhost:6969/v1/blacklist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
@@ -138,7 +138,7 @@ const startup = () => {
     }).catch(() => {});
 
 
-  fetch('https://api.chongluadao.vn/v1/whitelist')
+  fetch('http://localhost:6969/v1/whitelist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
@@ -148,23 +148,71 @@ const startup = () => {
 };
 
 
+const blockingFunction = (url, blackSite, tabId) => {
+    const message = {
+      site: url,
+      match: blackSite,
+      title: url,
+      lenient: inputBlockLenient,
+      favicon: `https://www.google.com/s2/favicons?domain=${url}`,
+    };
+    window.isBlocked[tabId] = url;
+
+    // TODO: This still not work, must find another way to change icon to red
+    chrome.browserAction.setIcon({
+      path: '../assets/cldvn_red.png',
+      tabId
+    });
+
+    const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
+    return {
+      redirectUrl: redirectUrl
+    };
+}
+
 const safeCheck = ({frameId, url, tabId}) => {
     const sites = blackListing;
-    const currentSite = psl.parse(url);
+    const currentUrl = new URL(url);
+    const currentSite = psl.parse(currentUrl.host);
+    const currentPath = currentUrl.pathname.replaceAll('/', '');
 
     for (let i = 0; i < sites.length; ++i) {
-        let blackSite = (new URL(sites[i])).host;
-        let prefix = blackSite.charAt(0);                
+        let blackSite = new URL(sites[i]);
+        let prefix = blackSite.host.split(".")[0];
+        let suffix = blackSite.pathname
+
         /**
          * Here we check if this blackSite is being blocked for all subdomains
-         * e.g: *.blacksite.com
+         * format: *.blacksite.com
          */
-        if(prefix === "*") {
-            let blackDomain = blackSite.splice(2, blackSite.length);
-            console.log(blackDomain)
-            break;
+        if(prefix == "%2A") {
+            let blackDomain = blackSite.host.slice(4, blackSite.host.length);
+            if(blackDomain == currentSite.domain) {
+                return blockingFunction(url, blackSite.host, tabId)
+            }
+        }
+
+        /**
+         * Now we check if this blacksite is being blocked for all url suffix
+         * format: blacksite.com/*
+         */
+        if(suffix == "/*") {
+            if(currentUrl.host === blackSite.host) {
+                return blockingFunction(url, blackSite.host, tabId)
+            }
+        }
+
+        /**
+         * If it wasn't blocked by prefix & suffix above, then we finally check if it match the pathname
+         * format: blacksite.com/this-is-path-name?query=some-stupid-query
+         */
+        if(currentPath && currentPath == blackSite.pathname.replaceAll('/', '')) {
+            console.log(currentPath);
+            return blockingFunction(url, blackSite.host, tabId)
         }
     }
+
+    return;
 }
 
 const filter = ({frameId, url, tabId}) => {
