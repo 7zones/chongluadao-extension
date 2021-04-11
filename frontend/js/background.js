@@ -147,7 +147,13 @@ const startup = () => {
     }).catch(() => {});
 };
 
-
+/**
+ * Method to block user from accessing a phishing site
+ * @param {String}   url of current site
+ * @param {String}   blackSite URL of blacksite in our DB
+ * @param {Integer}  tabId
+ * @return Redirect
+ */
 const blockingFunction = (url, blackSite, tabId) => {
     const message = {
       site: url,
@@ -170,7 +176,27 @@ const blockingFunction = (url, blackSite, tabId) => {
     };
 }
 
+/**
+ * Method to decide if user can access an URL
+ * @param {Object} details of onBeforeRequest event
+ * @docs https://developer.chrome.com/docs/extensions/reference/webRequest/#event-onBeforeRequest
+ */
 const safeCheck = ({frameId, url, tabId}) => {
+    // Invalid url
+    if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
+      return;
+    }
+
+    // Blacklist is empty or undefined
+    if (!blackListing || !blackListing.length) {
+      return;
+    }
+
+    // In case user decided to not blocking this site, we let them in
+    if(localStorage.getItem('whiteList')) {
+      return localStorage.removeItem('whiteList');
+    }
+
     const sites = blackListing;
     const currentUrl = new URL(url);
     const currentSite = psl.parse(currentUrl.host);
@@ -212,111 +238,19 @@ const safeCheck = ({frameId, url, tabId}) => {
         }
     }
 
+    /**
+     * Check if this site is in whitelist
+     * REMEMBER : Have to check whitelist AFTER blacklist
+     */
+    for (let i = 0; i < whiteListing.length; i++) {
+      if (whiteListing[i].includes(getDomain(url))) {
+        window.isWhiteList[tabId] = getDomain(url);
+        return;
+      }
+    }
+
     return;
 }
-
-const filter = ({frameId, url, tabId}) => {
-    console.log(url)
-  // Invalid url
-  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
-    return;
-  }
-
-  // Blacklist is empty or undefined
-  if (!blackListing || !blackListing.length) {
-    return;
-  }
-
-  // In case user decided to not blocking this site, we let them in
-  if(localStorage.getItem('whiteList')) {
-    return localStorage.removeItem('whiteList');
-  }
-
-  const sites = blackListing;
-  for (let i = 0; i < sites.length; ++i) {
-    try {
-      let site = sites[i].replace('https://', '').replace('http://', '').replace('www.', '');
-      let appendix = '[/]?(?:index.[a-z0-9]+)?[/]?$';
-      const trail = site.substr(site.length - 2);
-      let match = false;
-      if (trail == '/*') {
-        site = site.substr(0, site.length - 2);
-        appendix = '(?:$|/.*$)';
-        site = `^(?:[a-z0-9\\-_]+://)?(?:www\\.)?${site}${appendix}`;
-        const regex = new RegExp(site, 'i');
-        match = url.match(regex);
-        match = match ? (match.length > 0) : false;
-      } else {
-        match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''));
-      }
-
-      // Check if the URL has suffix or not, ie https://www.facebook.com/profile.php?id=100060251539767
-      const siteSuffix = sites[i].match(/(?:id=)(\d+)/);
-      const urlSuffix = url.match(/(?:id=)(\d+)/);
-      const suffix = siteSuffix && urlSuffix && siteSuffix[1] === urlSuffix[1];
-
-      if (match || suffix) {
-        if (inputBlockLenient) {
-          const access = localStorage.getItem(sites[i]);
-          if (access) {
-            const num = parseFloat(access);
-            const time = Date.now();
-            if (num > time) {
-              break;
-            } else {
-              localStorage.removeItem(sites[i]);
-            }
-          }
-        }
-
-        if (frameId !== 0) {
-          // This will always be true?
-          if (inputBlockFrames) {
-            return {
-              cancel: true
-            };
-          }
-          return;
-        }
-
-        const message = {
-          site: url,
-          match: sites[i],
-          title: url,
-          lenient: inputBlockLenient,
-          favicon: `https://www.google.com/s2/favicons?domain=${url}`,
-        };
-        window.isBlocked[tabId] = url;
-
-        // TODO: This still not work, must find another way to change icon to red
-        chrome.browserAction.setIcon({
-          path: '../assets/cldvn_red.png',
-          tabId
-        });
-
-        const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
-        return {
-          redirectUrl: redirectUrl
-        };
-      }
-    } catch(e) {
-      console.log(e);
-      continue;
-    }
-  }
-
-  /**
-   * Check if this site is in whitelist
-   * REMEMBER : Have to check whitelist AFTER blacklist
-   */
-  for (let i = 0; i < whiteListing.length; i++) {
-    if (whiteListing[i].includes(getDomain(url))) {
-      window.isWhiteList[tabId] = getDomain(url);
-      return;
-    }
-  }
-};
-
 
 const sendCurrentUrl = (tab = null) => {
   if(tab) {
