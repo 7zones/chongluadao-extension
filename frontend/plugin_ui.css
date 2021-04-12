@@ -1,6 +1,6 @@
 :root {
   font-size: 62.5%;
-  font-family: 'Russo One', 'Josefin Sans', sans-serif;
+  font-family: "Russo One", "Josefin Sans", sans-serif;
 }
 #plugin_name {
   width: 33rem;
@@ -11,11 +11,41 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: -webkit-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
-  background: -o-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
-  background: -ms-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
-  background: -moz-linear-gradient(21deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
-  background: linear-gradient(69deg, rgb(11, 119, 61) 0%, rgb(54, 170, 73) 41%, rgb(107, 189, 70) 81%, rgb(127, 195, 67) 100%);
+  background: -webkit-linear-gradient(
+    21deg,
+    rgb(11, 119, 61) 0%,
+    rgb(54, 170, 73) 41%,
+    rgb(107, 189, 70) 81%,
+    rgb(127, 195, 67) 100%
+  );
+  background: -o-linear-gradient(
+    21deg,
+    rgb(11, 119, 61) 0%,
+    rgb(54, 170, 73) 41%,
+    rgb(107, 189, 70) 81%,
+    rgb(127, 195, 67) 100%
+  );
+  background: -ms-linear-gradient(
+    21deg,
+    rgb(11, 119, 61) 0%,
+    rgb(54, 170, 73) 41%,
+    rgb(107, 189, 70) 81%,
+    rgb(127, 195, 67) 100%
+  );
+  background: -moz-linear-gradient(
+    21deg,
+    rgb(11, 119, 61) 0%,
+    rgb(54, 170, 73) 41%,
+    rgb(107, 189, 70) 81%,
+    rgb(127, 195, 67) 100%
+  );
+  background: linear-gradient(
+    69deg,
+    rgb(11, 119, 61) 0%,
+    rgb(54, 170, 73) 41%,
+    rgb(107, 189, 70) 81%,
+    rgb(127, 195, 67) 100%
+  );
 }
 
 .logo {
@@ -29,7 +59,6 @@ h6 {
 }
 
 h2 {
-
   text-align: center;
   font-size: 1.5rem;
 }
@@ -45,20 +74,22 @@ h1 {
 .collapsible {
   background-color: #28a745;
   color: white;
-  cursor: pointer;
-  padding: 0.5rem;
-  width: 10rem;
-  border: none;
-  text-align: left;
+  font-size: 1.6rem;
+  border-radius: 2rem;
+  width: 15rem;
+  padding: 0.5rem 2rem;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
   outline: none;
-  font-size: 1.2rem;
-  margin-left: 2rem;
+  border: none;
 }
-.active, .collapsible:hover {
+.active,
+.collapsible:hover {
   background-color: #39c881;
 }
 .collapsible:after {
-  content: '\002B';
+  content: "\002B";
   color: white;
   font-weight: bold;
   float: right;
@@ -107,18 +138,20 @@ h1 {
   align-items: center;
   margin-top: 1rem;
 }
-#site_score{
+#site_score {
   font-weight: bold;
   margin-left: 0.3rem;
   text-align: center;
 }
-.site_message.warning , .score.warning {
+.site_message.warning,
+.score.warning {
   color: #cc0000;
 }
-.site_message.safe , .score.safe {
+.site_message.safe,
+.score.safe {
   color: #28a745;
 }
-#site_msg{
+#site_msg {
   margin-top: 1rem;
   margin-bottom: 0.5rem;
   text-align: center;
@@ -134,10 +167,10 @@ li {
   font-weight: 400;
   margin: 0.2rem;
   display: inline-block;
-  padding-top: .5rem;
+  padding-top: 0.5rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  padding-bottom: .5rem;
+  padding-bottom: 0.5rem;
   color: #fff;
 }
 
@@ -149,26 +182,25 @@ iframe {
 a {
   text-align: center;
   display: block;
-  color: #195975
+  color: #195975;
 }
-
 
 .is-safe {
-    text-align: center;
-    padding: 1rem 0 1.5rem 0;
-    display: none;
+  text-align: center;
+  padding: 1rem 0 1.5rem 0;
+  display: none;
 }
 .is-safe img {
-    width: 20%;
+  width: 20%;
 }
 .is-safe h2 {
-    color: #28a745;
-    font-size: 2.2rem;
-    margin-top: 1rem;
+  color: #28a745;
+  font-size: 2.2rem;
+  margin-top: 1rem;
 }
 .is-safe .site-url {
-    font-size: 1.2rem;
+  font-size: 1.2rem;
 }
 #isPhishing h2 {
-    color: #cc0000;
+  color: #cc0000;
 }

@@ -2,7 +2,6 @@
 /*global chrome*/
 
 const msg = 'Cảm ơn bạn đã đánh giá';
-let currentUrl = '';
 
 $(document).ready(() => {
   /* 1. Visualizing things on Hover - See next part for action on click */
@@ -40,21 +39,11 @@ $(document).ready(() => {
     }
 
     const ratingValue = parseInt($('#stars li.selected').last().data('value'), 10);
-    sendRatingRequest({currentUrl, ratingValue}, () => {
-      $('.success-box').show();
-      $('.success-box').fadeIn(200);
-      $('.success-box div.text-message').html(`<span>${msg}</span>`);
-
-      //remove all click
-      $('#stars li').off();
-
-      //cache to storage
-      chrome.storage.local.set({cachedUrl: currentUrl, cacheTime: Date.now()});
-    }, msg);
+    sendRatingRequest(ratingValue);
   });
 });
 
-function sendRatingRequest(rating, callback, msg) {
+const sendRatingRequest = (ratingValue) => {
   //TODO: here callback hell
   $.post('https://api.chongluadao.vn/v1/initSession', {
     'app': 'chrome-extension',
@@ -62,38 +51,27 @@ function sendRatingRequest(rating, callback, msg) {
   }, function(auth){
     if (auth && auth.token) {
       const {token} = auth;
-      $.ajax({
-        type: 'POST',
-        url: 'https://api.chongluadao.vn/v1/rate',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        dataType: 'json',
-        data: {
-          rating: rating.ratingValue,
-          url: rating.currentUrl,
-        },
-        success : function() {},
+      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+        $.ajax({
+          type: 'POST',
+          url: 'https://api.chongluadao.vn/v1/rate',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          dataType: 'json',
+          data: {
+            rating: ratingValue,
+            url: tab.url,
+          },
+          success : () => {
+            chrome.storage.local.set({cachedUrl: tab.url, cacheTime: Date.now()});
+            $('#stars li').off();
+            $('.success-box').show();
+            $('.success-box').fadeIn(200);
+            $('.success-box div.text-message').html(`<span>${msg}</span>`);
+          },
+        });
       });
     }
   });
-
-  if (callback) {
-    callback(msg);
-  }
-}
-
-chrome.tabs.query({active: true,lastFocusedWindow: true}, ([tab, ]) => {
-  currentUrl = tab.url;
-  chrome.storage.local.get(['cachedUrl'], (result) => {
-    if (result && result.cachedUrl) {
-      if (currentUrl.match(new RegExp(result.cachedUrl, 'g')).length) {
-        //todo: uhm, what kind of logic here ?
-        $('#stars li').off();
-        $('.success-box').show();
-        $('.success-box').fadeIn(200);
-        $('.success-box div.text-message').html(`<span>${msg}</span>`);
-      }
-    }
-  });
-});
+};

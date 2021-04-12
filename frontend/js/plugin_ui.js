@@ -23,8 +23,14 @@ chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
   const tabId = tab.id;
   const url = new URL(tab.url);
   const domain = url.hostname;
+  // Display nothing if protocol is neither http or https
+  if (!['https:', 'http:'].includes(url.protocol)) {
+    $('#pluginBody').hide();
+    $('#domain_url').text(domain);
+    return;
+  }
 
-  if(background.isWhiteList[tab.id] == domain) {
+  if (background.isWhiteList[tab.id] == domain) {
     $('#pluginBody').hide();
     $('#isSafe').show();
     $('#isSafe .site-url').text(domain);
