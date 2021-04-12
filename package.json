@@ -20,5 +20,8 @@
     "gulp": "4.0.2",
     "gulp-append-prepend": "1.0.8",
     "webpack-cli": "^3.3.12"
+  },
+  "dependencies": {
+    "webpack": "^5.31.2"
   }
 }
