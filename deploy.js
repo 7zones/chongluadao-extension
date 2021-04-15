@@ -30,7 +30,7 @@ webStoreClient
   .then(async (token) => {
     if (!process.env.CHROME_EXTENSION_ID) {
       console.log('Publishing a new extension...');
-      webStoreClient
+      return webStoreClient
         .publish('default', token)
         .then((res) => {
           webStoreClient.extensionId = res.item_id;
