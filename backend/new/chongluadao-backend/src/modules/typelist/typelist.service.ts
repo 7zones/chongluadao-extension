@@ -71,13 +71,7 @@ export class TypelistService {
     const linkList = await this.blacklistLinkModel.find();
     const facebookList = await this.blacklistFacebookModel.find();
     const youtubeList = await this.blacklistYoutubeModel.find();
-    const blacklistRes = [
-      ...domainList,
-      ...linkList,
-      ...facebookList,
-      ...youtubeList,
-    ];
-    return blacklistRes;
+    return [...domainList, ...linkList, ...facebookList, ...youtubeList];
   }
 
   async getWhitelist() {
@@ -85,13 +79,7 @@ export class TypelistService {
     const linkList = await this.whitelistLinkModel.find();
     const facebookList = await this.whitelistFacebookModel.find();
     const youtubeList = await this.whitelistYoutubeModel.find();
-    const whitelistRes = [
-      ...domainList,
-      ...linkList,
-      ...facebookList,
-      ...youtubeList,
-    ];
-    return whitelistRes;
+    return [...domainList, ...linkList, ...facebookList, ...youtubeList];
   }
 
   async safeCheck(url: string): Promise<SafeCheckResDTO> {
@@ -141,7 +129,8 @@ export class TypelistService {
       );
       if (blackListCheck.length > 0) {
         return { type: 'unsafe' };
-      } else return { type: 'nodata' };
+      }
+      return { type: 'nodata' };
     }
   }
 
@@ -354,7 +343,8 @@ export class TypelistService {
       gRes.data.matches.length > 0
     ) {
       return { type: 'unsafe' };
-    } else return { type: 'nodata' };
+    }
+    return { type: 'nodata' };
   }
 
   // async importTxtFiles(fileName: string) {
