@@ -26,7 +26,13 @@
         "url": "localhost",
         "port": "27017",
         "username": "admin",
-        "password": "admin",
-        "name": "chongluadao"
-    }
+        "password": "admin123",
+        "name": "admin"
+    },
+    "gcloud": {
+        "safecheckUrl": "https://safebrowsing.googleapis.com/v4/threatMatches:find",
+        "key": "AIzaSyDAR0q2v-fbXAV337qrH05byIHCl8bxMfA"
+    },
+    "maxLengthUrl": 1000
 }
+

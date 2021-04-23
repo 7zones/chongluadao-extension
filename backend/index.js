@@ -11,7 +11,10 @@ const path = require('path');
 const fs = require('fs');
 const { Parser } = require('json2csv');
 const morgan = require('morgan');
-
+const axios = require('axios');
+const multer = require('multer');
+const _ = require('lodash/array');
+const { readFile } = require('fs');
 const { MongoClient } = require('mongodb');
 
 const fields = ['time','rating', 'url', 'ip', 'client'];
@@ -21,6 +24,7 @@ const parser = new Parser(opts);
 var refreshTokens = [];
 const accessTokenSecret = config.get("auth.accessTokenSecret");
 const refreshTokenSecret = config.get("auth.refreshTokenSecret");
+const maxLengthUrl = config.get("maxLengthUrl");
 
 const apiLimiter = rateLimit({
     windowMs: 55 * 60 * 1000,
@@ -40,6 +44,7 @@ app.use(bodyParser.json({limit: '1mb'}));
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+const upload = multer();
 
 // Enable logging
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
@@ -212,6 +217,9 @@ app.get(`/${config.get("app.version")}/:typelist`, function(req, res) {
         case "whitelist":
             type = "whitelist"
             break;
+        case "pornlist":
+            type = "pornlist"
+            break;
         default:
             res.status(400).send(req.params.typelist + " is not a valid type of list")
     }
@@ -246,6 +254,456 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
         }
     });
 });
+
+app.post(`/${config.get("app.version")}/importFiles/:typelist`,  upload.single('file'), async (req, res) => {
+    const rawData = req.file.buffer.toString();
+    const chunkData = _.chunk(JSON.parse(rawData), 1000);
+    switch (req.params.typelist) {
+        case "blacklist":
+            type = "blacklist"
+            break;
+        case "whitelist":
+            type = "whitelist"
+            break;
+        case "pornlist":
+            type = "pornlist"
+            break;
+        default:
+            res.status(400).send(req.params.typelist + " is not a valid type of list")
+    }
+
+
+    for (let i = 0; i < chunkData.length; i++) {
+        try {
+            await db.collection(type).insertMany(chunkData[i]);
+        } catch(err) {
+            console.log(err);
+        }
+    }
+
+    res.status(status.OK).send({message: 'INSERT SUCCESS'});
+})
+
+app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
+    let { url } = req.body;
+
+    if(!url || url.length > maxLengthUrl) {
+        return res.sendStatus(status.BAD_REQUEST);
+    }
+    db.collection('blacklist').find().toArray().then(result => {
+        // Check if current url exist in our Blacklist :
+        for(let blacksite of result) {
+            let site = blacksite.url.replace('https://', '').replace('http://', '').replace('www.', '')
+            let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
+            let trail = site.substr(site.length - 2);
+            let match = false
+
+            if (trail == "/*") {
+                site = site.substr(0, site.length - 2);
+                appendix = "(?:$|/.*$)";
+                site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
+
+                let regex = new RegExp(site, "i");
+                match = url.match(regex)
+                match = match ? (match.length > 0) : false
+            } else {
+                match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''))
+            }
+
+            // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
+            let suffix = false
+            if (blacksite.url.match(/(?:id=)(\d+)/) && url.match(/(?:id=)(\d+)/))
+                suffix = (blacksite.url.match(/(?:id=)(\d+)/)[1] == url.match(/(?:id=)(\d+)/)[1])
+
+            if(match || suffix)
+                return res.status(status.OK).send({type: "unsafe"});
+        }
+
+        // If doesn't exists in our DB, check other APIs :
+
+        // Google API Promise
+        let googleSafeCheckPromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'post',
+                url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                data:  {
+                    client: {
+                      clientId: "chongluadao",
+                      clientVersion: "1.0.0"
+                    },
+                    threatInfo: {
+                      threatTypes: [ "MALWARE",
+                                     "SOCIAL_ENGINEERING",
+                                     "UNWANTED_SOFTWARE",
+                                     "MALICIOUS_BINARY",
+                                     "POTENTIALLY_HARMFUL_APPLICATION"],
+                      platformTypes: ["ANY_PLATFORM"],
+                      threatEntryTypes: ["URL"],
+                      threatEntries: [
+                        { url: url + "/" }
+                      ]
+                    }
+                }
+            }).then((gRes) => {
+              if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+                resolve(false);
+              } else {
+                resolve(true);
+              }
+            });
+        })
+
+        Promise.all([
+                googleSafeCheckPromise,
+            ]).then((result) => {
+            if(result.every(val => val == true)) {
+                db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+                    if(result.length > 0) {
+                        res.status(status.OK).send({type: "safe"});
+                    } else {
+                        res.status(status.OK).send({type: "nodata"});
+                    }
+                })
+            } else {
+                res.status(status.OK).send({type: "unsafe"});
+            }
+        });
+
+    })
+});
+
+app.post(`/${config.get("app.version")}/safecheck-phishtank`, function(req, res) {
+    // https://www.phishtank.com/developer_info.php
+    let { url } = req.body;
+    url = preProcessDomainUrl(url);
+
+    axios({
+        method: 'get',
+        url: `https://raw.githubusercontent.com/mitchellkrogza/Phishing.Database/master/phishing-domains-ACTIVE.txt`,
+        headers: {
+            "Content-Type": "application/json"
+        },
+    }).then((result) => {
+      if(result && result.data) {
+        if(result.data.split('\n').includes(url)) {
+            res.status(status.OK).send({type: "unsafe"});
+        } else {
+            res.status(status.OK).send({type: "safe"});
+        }
+      } else {
+        res.status(status.OK).send({type: "nodata"});
+      }
+    });            
+});
+
+app.post(`/${config.get("app.version")}/safecheck-hellsh`, function(req, res) {
+    // https://hell.sh/hosts/
+    let { url } = req.body;
+    url = preProcessDomainUrl(url);
+
+    axios({
+        method: 'get',
+        url: `https://hell.sh/hosts/domains.txt`,
+        headers: {
+            "Content-Type": "application/json"
+        },
+    }).then((result) => {
+      if(result && result.data) {
+        if(result.data.split('\n').includes(url)) {
+            res.status(status.OK).send({type: "unsafe"});
+        } else {
+            res.status(status.OK).send({type: "safe"});
+        }
+      } else {
+        res.status(status.OK).send({type: "nodata"});
+      }
+    });            
+});
+
+app.post(`/${config.get("app.version")}/safecheck-oisd`, function(req, res) {
+    // https://oisd.nl/?p=dl
+    let { url } = req.body;
+    url = preProcessDomainUrl(url);
+
+    axios({
+        method: 'get',
+        url: `https://dbl.oisd.nl/`,
+        headers: {
+            "Content-Type": "application/json"
+        },
+    }).then((result) => {
+      if(result && result.data) {
+        if(result.data.split('\n').includes(url)) {
+            res.status(status.OK).send({type: "unsafe"});
+        } else {
+            res.status(status.OK).send({type: "safe"});
+        }
+      } else {
+        res.status(status.OK).send({type: "nodata"});
+      }
+    });            
+});
+
+app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
+    // https://github.com/mypdns/matrix/tree/master/source
+    let { url } = req.body;
+    url = preProcessDomainUrl(url);
+
+    let matrixPhishPromise = new Promise((resolve, reject) => {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/phishing/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+          if(res && res.data) {
+            if(res.data.split('\n').includes(url)) {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+          } else {
+            resolve(true);
+          }
+        });
+    })
+
+    let matrixAdsPromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'get',
+                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/adware/domains.list`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            }).then((res) => {
+            if(res && res.data) {
+                if(res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            } else {
+                resolve(true);
+            }
+            });
+    })
+
+    let matrixSpywarePromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'get',
+                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/spyware/domains.list`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            }).then((res) => {
+            if(res && res.data) {
+                if(res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            } else {
+                resolve(true);
+            }
+            });
+    })
+
+    let matrixScammingPromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'get',
+                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/scamming/domains.list`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            }).then((res) => {
+            if(res && res.data) {
+                if(res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            } else {
+                resolve(true);
+            }
+            });
+    })
+
+    let matrixPornPromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'get',
+                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/porno-sites/domains.list`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            }).then((res) => {
+            if(res && res.data) {
+                if(res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            } else {
+                resolve(true);
+            }
+            });
+    })
+
+    let matrixMaliciousPromise = new Promise((resolve, reject) => {
+            axios({
+                method: 'get',
+                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/malicious/domains.list`,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+            }).then((res) => {
+            if(res && res.data) {
+                if(res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            } else {
+                resolve(true);
+            }
+            });
+    })    
+    
+    Promise.all([
+        matrixPhishPromise,
+        matrixAdsPromise,
+        matrixSpywarePromise,
+        matrixScammingPromise,
+        matrixPornPromise,
+        matrixMaliciousPromise,
+    ]).then((result) => {
+        if(result.every(val => val == true)) {
+            res.status(status.OK).send({type: "safe"});
+        } else {
+            res.status(status.OK).send({type: "unsafe"});
+        }
+    });
+});
+
+app.post(`/${config.get("app.version")}/safecheck-segasec`, function(req, res) {
+    // https://github.com/Segasec/feed
+    let { url } = req.body;
+    let rawUrl = url;
+    url = preProcessDomainUrl(url);
+
+    let segasecDomainPromise = new Promise((resolve, reject) => {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/Segasec/feed/master/phishing-domains.json`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+          if(res && res.data) {
+            if(res.data.includes(url)) {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+          } else {
+            resolve(true);
+          }
+        });
+    })
+
+    let segasecUrlPromise = new Promise((resolve, reject) => {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/Segasec/feed/master/phishing-urls.json`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+          if(res && res.data) {
+            if(res.data.includes(rawUrl)) {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+          } else {
+            resolve(true);
+          }
+        });
+    })
+    
+    Promise.all([
+        segasecDomainPromise,
+        segasecUrlPromise
+    ]).then((result) => {
+        if(result.every(val => val == true)) {
+            res.status(status.OK).send({type: "safe"});
+        } else {
+            res.status(status.OK).send({type: "unsafe"});
+        }
+    });
+});
+
+app.post(`/${config.get("app.version")}/safecheck-energized`, function(req, res) {
+    // https://energized.pro/
+    let { url } = req.body;
+    url = preProcessDomainUrl(url);
+
+    axios({
+        method: 'get',
+        url: `https://block.energized.pro/basic/formats/one-line.txt`,
+        headers: {
+            "Content-Type": "application/json"
+        },
+    }).then((result) => {
+        if(result && result.data) {
+            const rawData = result.data.split('\n');
+            if(rawData[59].split(",").includes(url)) {
+                res.status(status.OK).send({type: "unsafe"});
+            } else {
+                res.status(status.OK).send({type: "safe"});
+            }
+          } else {
+            res.status(status.OK).send({type: "nodata"});
+        }
+    });
+
+    // let energizedPromise = new Promise((resolve, reject) => {
+    //     readFile('./config/energizedData.txt', (err, data) => {
+    //         if (err) throw err;
+    //         if (data) {
+    //             const rawData = data.toString().split('\n');
+    //             if(rawData[59].split(",").includes(url)) {
+    //                 resolve(false);
+    //             }
+    //         } else {
+    //             resolve(true)
+    //         }
+    //     })
+    // })
+});
+
+const preProcessDomainUrl = (url) => {
+    const indices = [];
+
+    for(let i=0; i < url.length; i++) {
+        if (url[i] === "/") indices.push(i);
+    }
+    
+    if(url.includes('http') || url.includes('https')) {
+        url = url.substring(0, indices[2])
+        if(url.includes('http')) {
+            url = url.substring(8, url.length)
+        } else if(url.includes('https')) {
+            url = url.substring(9, url.length)
+        }
+    } else {
+        url = url.substring(0, indices[0])
+    }
+    return url;
+}
 
 function validateSubmitting(params) {
     const { rating, url } = params;
