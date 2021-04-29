@@ -152,10 +152,10 @@ export class TypelistService {
         return youtubeCheckList;
       default:
         const domainCheckListPromise = this.whitelistDomainModel.find({
-          url: domain,
+          url: '/' + domain + '/',
         });
         const linkCheckListPromise = this.whitelistLinkModel.find({
-          url: link,
+          url: '/' + link + '/',
         });
         const whiteListRes = await Promise.all([
           domainCheckListPromise,
