@@ -39,7 +39,7 @@ async function bootstrap() {
   app.use(morgan('combined', { stream: accessLogStream }));
 
   // Global Prefix
-  app.setGlobalPrefix(appVersion);
+  // app.setGlobalPrefix(appVersion);
 
   // Set ratelimit
   // app.use(`/${appVersion}/rate`, apiLimiter);
