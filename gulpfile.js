@@ -1,10 +1,12 @@
 const gulp = require('gulp');
 const gap = require('gulp-append-prepend');
 
+const buildDir = process.argv.includes('--firefox') ? 'build-firefox' : 'build';
+
 gulp.task('licenses', function (done) {
   // this is to add ChongLuaDao licenses in the production mode for the minified js
   gulp
-    .src(['build/js/*js', '!build/js/jquery.js'], {base: './'})
+    .src([`${buildDir}/js/*js`, `!${buildDir}/js/jquery.js`], {base: './'})
     .pipe(
       gap.prependText(`/*!
 
@@ -26,7 +28,7 @@ gulp.task('licenses', function (done) {
 
   // this is to add ChongLuaDao licenses in the production mode for the minified html
   gulp
-    .src('build/*.html', {base: './'})
+    .src(`${buildDir}/*.html`, {base: './'})
     .pipe(
       gap.prependText(`<!--
 
@@ -48,7 +50,7 @@ gulp.task('licenses', function (done) {
 
   // this is to add ChongLuaDao licenses in the production mode for the minified css
   gulp
-    .src('build/*.css', {base: './'})
+    .src(`${buildDir}/*.css`, {base: './'})
     .pipe(
       gap.prependText(`/*!
 

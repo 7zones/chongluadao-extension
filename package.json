@@ -5,7 +5,8 @@
   "scripts": {
     "predeploy": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
     "deploy": "node ./deploy.js",
-    "build": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses"
+    "build": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
+    "build-firefox": "rm -rf ./build-firefox/* && cp -r ./frontend/* ./build-firefox/ && webpack --config webpack.firefox-config.js && gulp licenses --firefox"
   },
   "repository": {
     "type": "git",
