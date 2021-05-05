@@ -1,0 +1,11 @@
+aiohttp==3.6.3
+brotlipy==0.7.0
+bs4==0.0.1
+flask==1.1.2
+lxml==4.5.2
+olefile==0.46
+python-levenshtein==0.12.0
+python-whois==0.7.3
+sklearn==0.0
+tldextract==3.1.0
+whois==0.9.8
