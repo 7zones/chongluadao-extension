@@ -1,7 +1,4 @@
-# ignore these folders
-.DS_Store
-node_modules
-artifacts
-static
 build
 build-firefox
+node_modules
+.env
