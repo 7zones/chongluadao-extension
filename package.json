@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "description": "chongluadao",
   "scripts": {
-    "predeploy": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
-    "deploy": "node ./deploy.js",
     "build": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
     "build-firefox": "rm -rf ./build-firefox/* && cp -r ./frontend/* ./build-firefox/ && webpack --config webpack.firefox-config.js && gulp licenses --firefox"
   },
@@ -19,7 +17,6 @@
   },
   "homepage": "https://github.com/7zones/chongluadao-extension#readme",
   "devDependencies": {
-    "chrome-webstore-upload": "0.4.4",
     "dotenv": "^8.2.0",
     "eslint": "^7.23.0",
     "gulp": "4.0.2",
