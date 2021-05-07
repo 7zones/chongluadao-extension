@@ -29,3 +29,9 @@ You can use the developer version with Chrome (or Chromium browser family), as j
 - You might need to pin the plugin as well
 - Ignore all the error, it' just a developement version
 - Enjoy the protection
+
+# Setup for local dev:
+Run `npm i` to install dependecies
+If not yet have `build` and or `build-firefox` directory, create them with `mkdir build` and or `mkdir build-firefox`
+- To build for chrome, run `npm run build`
+- To build for firefox, run `npm run build-firefox`. Then go into `build-firefox` directory and remove `incognito` rule from the `manifest.json`
