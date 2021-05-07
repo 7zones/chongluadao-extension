@@ -234,7 +234,7 @@ const safeCheck = ({url, tabId, initiator}) => {
      * Now we check if this blacksite is being blocked for all url suffix
      * format: blacksite.com/*
      */
-    if (suffix == '/*' && currentUrl.host === blackSite.host) {
+    if (suffix == '/*' && currentSite.domain === blackSite.host) {
       return blockingFunction(url, blackSite.host, tabId);
     }
 
