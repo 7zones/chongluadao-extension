@@ -1,4 +1,7 @@
 # chongluadao-extension
+
+<img src="https://img.shields.io/chrome-web-store/v/mdcemplfpeifcogglenloohjghjbigni.svg?label=Version&amp;colorB=fd5d93&amp;style=for-the-badge&amp;logo=google-chrome" alt="ChongLuaDao extension"> <img src="https://img.shields.io/amo/v/{4ecf7867-1c19-4d31-9249-4bfb4d6e0729}.svg?label=Version&amp;colorB=fd5d93&amp;style=for-the-badge&amp;logo=firefox-browser" alt="ChongLuaDao extension">
+
 An extension aims to detect phishing websites and warns the user. User can submit (report/rating) a website that to be considered as phishing site. The classification is done on the client side with one-time download of classifier model and auto updating.
 
 Origin source code based on [Phishing Site Detector Plugin](https://github.com/picopalette/phishing-detection-plugin).
