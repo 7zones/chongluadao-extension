@@ -176,12 +176,21 @@ const blockingFunction = (url, blackSite, tabId) => {
   };
 };
 
+
+const createUrlObject = (url) => {
+  try {
+    return new URL(url);
+  } catch(err) {
+    return;
+  }
+};
+
 /**
  * Method to decide if user can access an URL
  * @param {Object} details of onBeforeRequest event
  * @docs https://developer.chrome.com/docs/extensions/reference/webRequest/#event-onBeforeRequest
  */
-const safeCheck = ({url, tabId}) => {
+const safeCheck = ({url, tabId, initiator}) => {
   // Invalid url
   if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
     return;
@@ -198,12 +207,15 @@ const safeCheck = ({url, tabId}) => {
   }
 
   const sites = blackListing;
-  const currentUrl = new URL(url);
+  const currentUrl = createUrlObject(url);
   const currentSite = psl.parse(currentUrl.host);
   const currentPath = currentUrl.href.replaceAll('/', '');
 
   for (let i = 0; i < sites.length; ++i) {
-    const blackSite = new URL(sites[i]);
+    const blackSite = createUrlObject(sites[i]);
+    if (!blackSite) {
+      continue;
+    }
     const prefix = blackSite.host.split('.')[0];
     const suffix = blackSite.pathname;
 
@@ -222,10 +234,8 @@ const safeCheck = ({url, tabId}) => {
      * Now we check if this blacksite is being blocked for all url suffix
      * format: blacksite.com/*
      */
-    if (suffix == '/*') {
-      if(currentUrl.host === blackSite.host) {
-        return blockingFunction(url, blackSite.host, tabId);
-      }
+    if (suffix == '/*' && currentUrl.host === blackSite.host) {
+      return blockingFunction(url, blackSite.host, tabId);
     }
 
     /**
@@ -233,7 +243,6 @@ const safeCheck = ({url, tabId}) => {
      * format: blacksite.com/this-is-path-name?query=some-stupid-query
      */
     if(currentPath && currentPath == blackSite.href.replaceAll('/', '')) {
-      console.log(currentPath);
       return blockingFunction(url, blackSite.host, tabId);
     }
   }
@@ -242,11 +251,12 @@ const safeCheck = ({url, tabId}) => {
    * Check if this site is in whitelist
    * REMEMBER : Have to check whitelist AFTER blacklist
    */
-  for (let i = 0; i < whiteListing.length; i++) {
-    if (whiteListing[i].includes(getDomain(url))) {
-      window.isWhiteList[tabId] = getDomain(url);
-      return;
-    }
+
+  // If not blocklisted, then just check the domain of the initiator instead of sub frame url
+  const domain = getDomain(initiator || url);
+  if (whiteListing.find((row) => row.includes(domain))) {
+    window.isWhiteList[tabId] = domain;
+    return;
   }
 
   return;
