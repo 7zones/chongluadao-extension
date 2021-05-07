@@ -263,8 +263,8 @@ const safeCheck = ({url, tabId, initiator}) => {
 };
 
 const sendCurrentUrl = (tab = null) => {
-  if (tab) {
-    return updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
+  if (tab && tab.tabId) {
+    return updateBadge(window.isPhish[tab.tabId], window.legitimatePercents[tab.tabId], tab.tabId);
   }
   chrome.tabs.query({active: true, currentWindow: true}, ([tab]) =>  {
     updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
