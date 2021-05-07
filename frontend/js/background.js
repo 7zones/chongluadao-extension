@@ -266,7 +266,7 @@ const sendCurrentUrl = (tab = null) => {
   if (tab) {
     return updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
   }
-  chrome.tabs.getSelected(null, (tab) =>  {
+  chrome.tabs.query({active: true, currentWindow: true}, ([tab]) =>  {
     updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
   });
 };
@@ -310,8 +310,6 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.tabs.onActivated.addListener(sendCurrentUrl);
-chrome.tabs.onSelectionChanged.addListener(sendCurrentUrl);
-
 
 chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
   if (tab.status == 'complete') {
