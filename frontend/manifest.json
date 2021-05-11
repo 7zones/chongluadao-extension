@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/jquery.js", "js/features.js"]
+      "js": ["js/features.js"]
     }
   ],
   "web_accessible_resources": ["js/blocking.js", "blocking.html"],
