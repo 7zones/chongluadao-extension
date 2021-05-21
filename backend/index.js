@@ -319,58 +319,59 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
                 return res.status(status.OK).send({type: "unsafe"});
         }
 
+        db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
+            if(result.length > 0) {
+                res.status(status.OK).send({type: "safe"});
+            } else {
+                res.status(status.OK).send({type: "nodata"});
+            }
+        })
         // If doesn't exists in our DB, check other APIs :
 
         // Google API Promise
-        let googleSafeCheckPromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'post',
-                url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                data:  {
-                    client: {
-                      clientId: "chongluadao",
-                      clientVersion: "1.0.0"
-                    },
-                    threatInfo: {
-                      threatTypes: [ "MALWARE",
-                                     "SOCIAL_ENGINEERING",
-                                     "UNWANTED_SOFTWARE",
-                                     "MALICIOUS_BINARY",
-                                     "POTENTIALLY_HARMFUL_APPLICATION"],
-                      platformTypes: ["ANY_PLATFORM"],
-                      threatEntryTypes: ["URL"],
-                      threatEntries: [
-                        { url: url + "/" }
-                      ]
-                    }
-                }
-            }).then((gRes) => {
-              if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
-                resolve(false);
-              } else {
-                resolve(true);
-              }
-            });
-        })
+        // let googleSafeCheckPromise = new Promise((resolve, reject) => {
+        //     axios({
+        //         method: 'post',
+        //         url: `${config.get("gcloud.safecheckUrl")}?key=${config.get("gcloud.key")}`,
+        //         headers: {
+        //             "Content-Type": "application/json"
+        //         },
+        //         data:  {
+        //             client: {
+        //               clientId: "chongluadao",
+        //               clientVersion: "1.0.0"
+        //             },
+        //             threatInfo: {
+        //               threatTypes: [ "MALWARE",
+        //                              "SOCIAL_ENGINEERING",
+        //                              "UNWANTED_SOFTWARE",
+        //                              "MALICIOUS_BINARY",
+        //                              "POTENTIALLY_HARMFUL_APPLICATION"],
+        //               platformTypes: ["ANY_PLATFORM"],
+        //               threatEntryTypes: ["URL"],
+        //               threatEntries: [
+        //                 { url: url + "/" }
+        //               ]
+        //             }
+        //         }
+        //     }).then((gRes) => {
+        //       if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+        //         resolve(false);
+        //       } else {
+        //         resolve(true);
+        //       }
+        //     });
+        // })
 
-        Promise.all([
-                googleSafeCheckPromise,
-            ]).then((result) => {
-            if(result.every(val => val == true)) {
-                db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
-                    if(result.length > 0) {
-                        res.status(status.OK).send({type: "safe"});
-                    } else {
-                        res.status(status.OK).send({type: "nodata"});
-                    }
-                })
-            } else {
-                res.status(status.OK).send({type: "unsafe"});
-            }
-        });
+        // Promise.all([
+        //         googleSafeCheckPromise,
+        //     ]).then((result) => {
+        //     if(result.every(val => val == true)) {
+                
+        //     } else {
+        //         res.status(status.OK).send({type: "unsafe"});
+        //     }
+        // });
 
     })
 });
