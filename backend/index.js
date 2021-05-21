@@ -9,16 +9,25 @@ const rateLimit = require("express-rate-limit");
 
 const path = require('path');
 const fs = require('fs');
-const { Parser } = require('json2csv');
+const {
+    Parser
+} = require('json2csv');
 const morgan = require('morgan');
 const axios = require('axios');
 const multer = require('multer');
 const _ = require('lodash/array');
-const { readFile } = require('fs');
-const { MongoClient } = require('mongodb');
+const {
+    readFile
+} = require('fs');
+const {
+    MongoClient
+} = require('mongodb');
 
-const fields = ['time','rating', 'url', 'ip', 'client'];
-const opts = { fields, header: false };
+const fields = ['time', 'rating', 'url', 'ip', 'client'];
+const opts = {
+    fields,
+    header: false
+};
 const parser = new Parser(opts);
 
 var refreshTokens = [];
@@ -30,7 +39,7 @@ const apiLimiter = rateLimit({
     windowMs: 55 * 60 * 1000,
     max: 100,
     message: "Too many request from this IP, please try again after an hour"
-  });
+});
 
 
 const app = express();
@@ -40,15 +49,21 @@ app.use(express.static('public'));
 
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
-app.use(bodyParser.json({limit: '1mb'}));
+app.use(bodyParser.json({
+    limit: '1mb'
+}));
 app.use(bodyParser.urlencoded({
-  extended: true
+    extended: true
 }));
 const upload = multer();
 
 // Enable logging
-const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
-app.use(morgan('combined', { stream: accessLogStream }))
+const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), {
+    flags: 'a'
+})
+app.use(morgan('combined', {
+    stream: accessLogStream
+}))
 // Rate limit
 app.use(`/${config.get("app.version")}/rate`, apiLimiter);
 
@@ -74,23 +89,27 @@ const authenticateJWT = (req, res, next) => {
 };
 
 app.post(`/${config.get("app.version")}/initSession`, (req, res) => {
-    const { app, secret } = req.body;
-    const client = clients.find(u => { return u.app === app && u.secret === secret });
+    const {
+        app,
+        secret
+    } = req.body;
+    const client = clients.find(u => {
+        return u.app === app && u.secret === secret
+    });
 
     if (client) {
         //TODO: generate an access token
         const accessToken = jwt.sign({
-            username: client.app,
-            role: client.role
-        },
-        accessTokenSecret,
-        {
-            expiresIn: config.get("auth.expiration")
-        });
+                username: client.app,
+                role: client.role
+            },
+            accessTokenSecret, {
+                expiresIn: config.get("auth.expiration")
+            });
 
         const refreshToken = jwt.sign({
-            username: client.app,
-            role: client.role
+                username: client.app,
+                role: client.role
             },
             refreshTokenSecret);
 
@@ -103,17 +122,19 @@ app.post(`/${config.get("app.version")}/initSession`, (req, res) => {
             token: accessToken,
             refresh: refreshToken,
         });
-    }
-    else {
+    } else {
         res.status(status.FORBIDDEN).send({
             version: config.get("app.version"),
             requestedOn: new Date(),
-            message: `Client application credential incorrect. ${status['401_MESSAGE']}`});
+            message: `Client application credential incorrect. ${status['401_MESSAGE']}`
+        });
     }
 });
 
 app.post(`/${config.get("app.version")}/token`, (req, res) => {
-    const { token } = req.body;
+    const {
+        token
+    } = req.body;
 
     if (!token) {
         return res.sendStatus(401);
@@ -129,13 +150,12 @@ app.post(`/${config.get("app.version")}/token`, (req, res) => {
         }
 
         const accessToken = jwt.sign({
-            username: client.app,
-            role: client.role
-        },
-        accessTokenSecret,
-        {
-            expiresIn: config.get("auth.expiration")
-        });
+                username: client.app,
+                role: client.role
+            },
+            accessTokenSecret, {
+                expiresIn: config.get("auth.expiration")
+            });
 
         res.json({
             status: status.OK,
@@ -147,7 +167,9 @@ app.post(`/${config.get("app.version")}/token`, (req, res) => {
 });
 
 app.post(`/${config.get("app.version")}/closeSession`, (req, res) => {
-    const { token } = req.body;
+    const {
+        token
+    } = req.body;
     refreshTokens = refreshTokens.filter(t => t !== token);
 
     res.status(status.OK).send({
@@ -155,20 +177,24 @@ app.post(`/${config.get("app.version")}/closeSession`, (req, res) => {
         version: config.get("app.version"),
         requestedOn: new Date(),
         message: "Session closed"
-      });
+    });
 });
 
-app.get(`/${config.get("app.version")}/ping`, function(req, res){
-  res.status(status.OK).send({
-      status: status.OK,
-      version: config.get("app.version"),
-      requestedOn: new Date(),
+app.get(`/${config.get("app.version")}/ping`, function(req, res) {
+    res.status(status.OK).send({
+        status: status.OK,
+        version: config.get("app.version"),
+        requestedOn: new Date(),
     });
 })
 
 app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, res) {
     //TODO: store request to file
-    const params = {  time: new Date(), ...req.body, ip: req.ip};
+    const params = {
+        time: new Date(),
+        ...req.body,
+        ip: req.ip
+    };
     const msg = validateSubmitting(params);
     if (msg.indexOf("ok") == -1) {
         res.status(status.BAD_REQUEST).send({
@@ -177,8 +203,7 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
             requestedOn: new Date(),
             "message": msg
         });
-    }
-    else {
+    } else {
         if (params) {
             db.collection("rating").insertOne(params);
             /*
@@ -197,7 +222,7 @@ app.post(`/${config.get("app.version")}/rate`, authenticateJWT, function(req, re
             status: status.OK,
             version: config.get("app.version"),
             requestedOn: new Date(),
-            "message":"ok"
+            "message": "ok"
         });
     }
 })
@@ -241,8 +266,8 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
     }
 
     //get encrypted data
-    fs.readFile(`secure/${req.params.resId}.json`, "utf8", function(err, data){
-        if(err) throw err;
+    fs.readFile(`secure/${req.params.resId}.json`, "utf8", function(err, data) {
+        if (err) throw err;
 
         if (data) {
             return res.status(status.OK).send({
@@ -255,7 +280,7 @@ app.post(`/${config.get("app.version")}/res/:resId`, authenticateJWT, function(r
     });
 });
 
-app.post(`/${config.get("app.version")}/importFiles/:typelist`,  upload.single('file'), async (req, res) => {
+app.post(`/${config.get("app.version")}/importFiles/:typelist`, upload.single('file'), async (req, res) => {
     const rawData = req.file.buffer.toString();
     const chunkData = _.chunk(JSON.parse(rawData), 1000);
     switch (req.params.typelist) {
@@ -276,47 +301,57 @@ app.post(`/${config.get("app.version")}/importFiles/:typelist`,  upload.single('
     for (let i = 0; i < chunkData.length; i++) {
         try {
             await db.collection(type).insertMany(chunkData[i]);
-        } catch(err) {
+        } catch (err) {
             console.log(err);
         }
     }
 
-    res.status(status.OK).send({message: 'INSERT SUCCESS'});
+    res.status(status.OK).send({
+        message: 'INSERT SUCCESS'
+    });
 })
 
 app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
 
-    if(!url || url.length > maxLengthUrl) {
+    if (!url || url.length > maxLengthUrl) {
         return res.sendStatus(status.BAD_REQUEST);
     }
     db.collection('blacklist').find().toArray().then(result => {
         // Check if current url exist in our Blacklist :
-        for(let blacksite of result) {
-            let site = blacksite.url.replace('https://', '').replace('http://', '').replace('www.', '')
-            let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
-            let trail = site.substr(site.length - 2);
-            let match = false
+        for (let blacksite of result) {
+            try {
+                let site = blacksite.url.replace('https://', '').replace('http://', '').replace('www.', '')
+                let appendix = "[/]?(?:index\.[a-z0-9]+)?[/]?$";
+                let trail = site.substr(site.length - 2);
+                let match = false
 
-            if (trail == "/*") {
-                site = site.substr(0, site.length - 2);
-                appendix = "(?:$|/.*$)";
-                site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
+                if (trail == "/*") {
+                    site = site.substr(0, site.length - 2);
+                    appendix = "(?:$|/.*$)";
+                    site = "^(?:[a-z0-9\\-_]+:\/\/)?(?:www\\.)?" + site + appendix;
 
-                let regex = new RegExp(site, "i");
-                match = url.match(regex)
-                match = match ? (match.length > 0) : false
-            } else {
-                match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''))
-            }
+                    let regex = new RegExp(site, "i");
+                    match = url.match(regex)
+                    match = match ? (match.length > 0) : false
+                } else {
+                    match = encodeURIComponent(site) == encodeURIComponent(url.replace('https://', '').replace('http://', '').replace('www.', ''))
+                }
 
-            // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
-            let suffix = false
-            if (blacksite.url.match(/(?:id=)(\d+)/) && url.match(/(?:id=)(\d+)/))
-                suffix = (blacksite.url.match(/(?:id=)(\d+)/)[1] == url.match(/(?:id=)(\d+)/)[1])
+                // Check if the URL has suffix or not, for ex: https://www.facebook.com/profile.php?id=100060251539767
+                let suffix = false
+                if (blacksite.url.match(/(?:id=)(\d+)/) && url.match(/(?:id=)(\d+)/))
+                    suffix = (blacksite.url.match(/(?:id=)(\d+)/)[1] == url.match(/(?:id=)(\d+)/)[1])
 
-            if(match || suffix)
-                return res.status(status.OK).send({type: "unsafe"});
+                if (match || suffix)
+                    return res.status(status.OK).send({
+                        type: "unsafe"
+                    });
+
+            } catch(e) { continue; }
+
         }
 
         // If doesn't exists in our DB, check other APIs :
@@ -329,47 +364,63 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                data:  {
+                data: {
                     client: {
-                      clientId: "chongluadao",
-                      clientVersion: "1.0.0"
+                        clientId: "chongluadao",
+                        clientVersion: "1.0.0"
                     },
                     threatInfo: {
-                      threatTypes: [ "MALWARE",
-                                     "SOCIAL_ENGINEERING",
-                                     "UNWANTED_SOFTWARE",
-                                     "MALICIOUS_BINARY",
-                                     "POTENTIALLY_HARMFUL_APPLICATION"],
-                      platformTypes: ["ANY_PLATFORM"],
-                      threatEntryTypes: ["URL"],
-                      threatEntries: [
-                        { url: url + "/" }
-                      ]
+                        threatTypes: ["MALWARE",
+                            "SOCIAL_ENGINEERING",
+                            "UNWANTED_SOFTWARE",
+                            "MALICIOUS_BINARY",
+                            "POTENTIALLY_HARMFUL_APPLICATION"
+                        ],
+                        platformTypes: ["ANY_PLATFORM"],
+                        threatEntryTypes: ["URL"],
+                        threatEntries: [{
+                            url: url + "/"
+                        }]
                     }
                 }
             }).then((gRes) => {
-              if(gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
-                resolve(false);
-              } else {
-                resolve(true);
-              }
-            });
+                if (gRes && gRes.data && gRes.data.matches && gRes.data.matches.length > 0) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
+            }).catch(e => { reject() });
         })
 
         Promise.all([
-                googleSafeCheckPromise,
-            ]).then((result) => {
-            if(result.every(val => val == true)) {
-                db.collection('whitelist').find({url: {'$regex': url, '$options': 'i'}}).toArray().then(result => {
-                    if(result.length > 0) {
-                        res.status(status.OK).send({type: "safe"});
+            googleSafeCheckPromise,
+        ]).then((result) => {
+            if (result.every(val => val == true)) {
+                db.collection('whitelist').find({
+                    url: {
+                        '$regex': url,
+                        '$options': 'i'
+                    }
+                }).toArray().then(result => {
+                    if (result.length > 0) {
+                        res.status(status.OK).send({
+                            type: "safe"
+                        });
                     } else {
-                        res.status(status.OK).send({type: "nodata"});
+                        res.status(status.OK).send({
+                            type: "nodata"
+                        });
                     }
                 })
             } else {
-                res.status(status.OK).send({type: "unsafe"});
+                res.status(status.OK).send({
+                    type: "unsafe"
+                });
             }
+        }).catch(e => {
+            res.status(500).send({
+                type: "server_error"
+            });
         });
 
     })
@@ -377,7 +428,9 @@ app.post(`/${config.get("app.version")}/safecheck`, function(req, res) {
 
 app.post(`/${config.get("app.version")}/safecheck-phishtank`, function(req, res) {
     // https://www.phishtank.com/developer_info.php
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     url = preProcessDomainUrl(url);
 
     axios({
@@ -387,21 +440,29 @@ app.post(`/${config.get("app.version")}/safecheck-phishtank`, function(req, res)
             "Content-Type": "application/json"
         },
     }).then((result) => {
-      if(result && result.data) {
-        if(result.data.split('\n').includes(url)) {
-            res.status(status.OK).send({type: "unsafe"});
+        if (result && result.data) {
+            if (result.data.split('\n').includes(url)) {
+                res.status(status.OK).send({
+                    type: "unsafe"
+                });
+            } else {
+                res.status(status.OK).send({
+                    type: "safe"
+                });
+            }
         } else {
-            res.status(status.OK).send({type: "safe"});
+            res.status(status.OK).send({
+                type: "nodata"
+            });
         }
-      } else {
-        res.status(status.OK).send({type: "nodata"});
-      }
-    });            
+    }).catch(e => {});
 });
 
 app.post(`/${config.get("app.version")}/safecheck-hellsh`, function(req, res) {
     // https://hell.sh/hosts/
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     url = preProcessDomainUrl(url);
 
     axios({
@@ -411,21 +472,29 @@ app.post(`/${config.get("app.version")}/safecheck-hellsh`, function(req, res) {
             "Content-Type": "application/json"
         },
     }).then((result) => {
-      if(result && result.data) {
-        if(result.data.split('\n').includes(url)) {
-            res.status(status.OK).send({type: "unsafe"});
+        if (result && result.data) {
+            if (result.data.split('\n').includes(url)) {
+                res.status(status.OK).send({
+                    type: "unsafe"
+                });
+            } else {
+                res.status(status.OK).send({
+                    type: "safe"
+                });
+            }
         } else {
-            res.status(status.OK).send({type: "safe"});
+            res.status(status.OK).send({
+                type: "nodata"
+            });
         }
-      } else {
-        res.status(status.OK).send({type: "nodata"});
-      }
-    });            
+    }).catch(e => {});
 });
 
 app.post(`/${config.get("app.version")}/safecheck-oisd`, function(req, res) {
     // https://oisd.nl/?p=dl
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     url = preProcessDomainUrl(url);
 
     axios({
@@ -435,21 +504,29 @@ app.post(`/${config.get("app.version")}/safecheck-oisd`, function(req, res) {
             "Content-Type": "application/json"
         },
     }).then((result) => {
-      if(result && result.data) {
-        if(result.data.split('\n').includes(url)) {
-            res.status(status.OK).send({type: "unsafe"});
+        if (result && result.data) {
+            if (result.data.split('\n').includes(url)) {
+                res.status(status.OK).send({
+                    type: "unsafe"
+                });
+            } else {
+                res.status(status.OK).send({
+                    type: "safe"
+                });
+            }
         } else {
-            res.status(status.OK).send({type: "safe"});
+            res.status(status.OK).send({
+                type: "nodata"
+            });
         }
-      } else {
-        res.status(status.OK).send({type: "nodata"});
-      }
-    });            
+    }).catch(e => {});
 });
 
 app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
     // https://github.com/mypdns/matrix/tree/master/source
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     url = preProcessDomainUrl(url);
 
     let matrixPhishPromise = new Promise((resolve, reject) => {
@@ -460,28 +537,28 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
                 "Content-Type": "application/json"
             },
         }).then((res) => {
-          if(res && res.data) {
-            if(res.data.split('\n').includes(url)) {
-                resolve(false);
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
             } else {
                 resolve(true);
             }
-          } else {
-            resolve(true);
-          }
-        });
+        }).catch(e => {});
     })
 
     let matrixAdsPromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'get',
-                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/adware/domains.list`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            }).then((res) => {
-            if(res && res.data) {
-                if(res.data.split('\n').includes(url)) {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/adware/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
                     resolve(false);
                 } else {
                     resolve(true);
@@ -489,19 +566,19 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
             } else {
                 resolve(true);
             }
-            });
+        }).catch(e => {});
     })
 
     let matrixSpywarePromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'get',
-                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/spyware/domains.list`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            }).then((res) => {
-            if(res && res.data) {
-                if(res.data.split('\n').includes(url)) {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/spyware/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
                     resolve(false);
                 } else {
                     resolve(true);
@@ -509,19 +586,19 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
             } else {
                 resolve(true);
             }
-            });
+        }).catch(e => {});
     })
 
     let matrixScammingPromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'get',
-                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/scamming/domains.list`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            }).then((res) => {
-            if(res && res.data) {
-                if(res.data.split('\n').includes(url)) {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/scamming/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
                     resolve(false);
                 } else {
                     resolve(true);
@@ -529,19 +606,19 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
             } else {
                 resolve(true);
             }
-            });
+        }).catch(e => {});
     })
 
     let matrixPornPromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'get',
-                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/porno-sites/domains.list`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            }).then((res) => {
-            if(res && res.data) {
-                if(res.data.split('\n').includes(url)) {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/porno-sites/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
                     resolve(false);
                 } else {
                     resolve(true);
@@ -549,19 +626,19 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
             } else {
                 resolve(true);
             }
-            });
+        }).catch(e => {});
     })
 
     let matrixMaliciousPromise = new Promise((resolve, reject) => {
-            axios({
-                method: 'get',
-                url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/malicious/domains.list`,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            }).then((res) => {
-            if(res && res.data) {
-                if(res.data.split('\n').includes(url)) {
+        axios({
+            method: 'get',
+            url: `https://raw.githubusercontent.com/mypdns/matrix/master/source/malicious/domains.list`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+        }).then((res) => {
+            if (res && res.data) {
+                if (res.data.split('\n').includes(url)) {
                     resolve(false);
                 } else {
                     resolve(true);
@@ -569,9 +646,9 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
             } else {
                 resolve(true);
             }
-            });
-    })    
-    
+        }).catch(e => {});
+    })
+
     Promise.all([
         matrixPhishPromise,
         matrixAdsPromise,
@@ -580,17 +657,23 @@ app.post(`/${config.get("app.version")}/safecheck-matrix`, function(req, res) {
         matrixPornPromise,
         matrixMaliciousPromise,
     ]).then((result) => {
-        if(result.every(val => val == true)) {
-            res.status(status.OK).send({type: "safe"});
+        if (result.every(val => val == true)) {
+            res.status(status.OK).send({
+                type: "safe"
+            });
         } else {
-            res.status(status.OK).send({type: "unsafe"});
+            res.status(status.OK).send({
+                type: "unsafe"
+            });
         }
     });
 });
 
 app.post(`/${config.get("app.version")}/safecheck-segasec`, function(req, res) {
     // https://github.com/Segasec/feed
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     let rawUrl = url;
     url = preProcessDomainUrl(url);
 
@@ -602,16 +685,16 @@ app.post(`/${config.get("app.version")}/safecheck-segasec`, function(req, res) {
                 "Content-Type": "application/json"
             },
         }).then((res) => {
-          if(res && res.data) {
-            if(res.data.includes(url)) {
-                resolve(false);
+            if (res && res.data) {
+                if (res.data.includes(url)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
             } else {
                 resolve(true);
             }
-          } else {
-            resolve(true);
-          }
-        });
+        }).catch(e => {});
     })
 
     let segasecUrlPromise = new Promise((resolve, reject) => {
@@ -622,33 +705,39 @@ app.post(`/${config.get("app.version")}/safecheck-segasec`, function(req, res) {
                 "Content-Type": "application/json"
             },
         }).then((res) => {
-          if(res && res.data) {
-            if(res.data.includes(rawUrl)) {
-                resolve(false);
+            if (res && res.data) {
+                if (res.data.includes(rawUrl)) {
+                    resolve(false);
+                } else {
+                    resolve(true);
+                }
             } else {
                 resolve(true);
             }
-          } else {
-            resolve(true);
-          }
-        });
+        }).catch(e => {});
     })
-    
+
     Promise.all([
         segasecDomainPromise,
         segasecUrlPromise
     ]).then((result) => {
-        if(result.every(val => val == true)) {
-            res.status(status.OK).send({type: "safe"});
+        if (result.every(val => val == true)) {
+            res.status(status.OK).send({
+                type: "safe"
+            });
         } else {
-            res.status(status.OK).send({type: "unsafe"});
+            res.status(status.OK).send({
+                type: "unsafe"
+            });
         }
     });
 });
 
 app.post(`/${config.get("app.version")}/safecheck-energized`, function(req, res) {
     // https://energized.pro/
-    let { url } = req.body;
+    let {
+        url
+    } = req.body;
     url = preProcessDomainUrl(url);
 
     axios({
@@ -658,17 +747,23 @@ app.post(`/${config.get("app.version")}/safecheck-energized`, function(req, res)
             "Content-Type": "application/json"
         },
     }).then((result) => {
-        if(result && result.data) {
+        if (result && result.data) {
             const rawData = result.data.split('\n');
-            if(rawData[59].split(",").includes(url)) {
-                res.status(status.OK).send({type: "unsafe"});
+            if (rawData[59].split(",").includes(url)) {
+                res.status(status.OK).send({
+                    type: "unsafe"
+                });
             } else {
-                res.status(status.OK).send({type: "safe"});
+                res.status(status.OK).send({
+                    type: "safe"
+                });
             }
-          } else {
-            res.status(status.OK).send({type: "nodata"});
+        } else {
+            res.status(status.OK).send({
+                type: "nodata"
+            });
         }
-    });
+    }).catch(e => {});
 
     // let energizedPromise = new Promise((resolve, reject) => {
     //     readFile('./config/energizedData.txt', (err, data) => {
@@ -688,15 +783,15 @@ app.post(`/${config.get("app.version")}/safecheck-energized`, function(req, res)
 const preProcessDomainUrl = (url) => {
     const indices = [];
 
-    for(let i=0; i < url.length; i++) {
+    for (let i = 0; i < url.length; i++) {
         if (url[i] === "/") indices.push(i);
     }
-    
-    if(url.includes('http') || url.includes('https')) {
+
+    if (url.includes('http') || url.includes('https')) {
         url = url.substring(0, indices[2])
-        if(url.includes('http')) {
+        if (url.includes('http')) {
             url = url.substring(8, url.length)
-        } else if(url.includes('https')) {
+        } else if (url.includes('https')) {
             url = url.substring(9, url.length)
         }
     } else {
@@ -706,13 +801,15 @@ const preProcessDomainUrl = (url) => {
 }
 
 function validateSubmitting(params) {
-    const { rating, url } = params;
+    const {
+        rating,
+        url
+    } = params;
     const expUrl = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
 
     if (rating < 1 || rating > 5) {
         return "Rating is out of range";
-    }
-    else if (!url.match(new RegExp(expUrl))) {
+    } else if (!url.match(new RegExp(expUrl))) {
         return `Incorrect URL ${url}`;
     }
     return "ok";
@@ -733,4 +830,4 @@ MongoClient.connect(url, {
     db = database.db(config.get("db.name"));
     console.info("Launch the API Server at ", config.get("app.domain"), ":", config.get("app.port"));
     app.listen(config.get("app.port"));
- });
+});
