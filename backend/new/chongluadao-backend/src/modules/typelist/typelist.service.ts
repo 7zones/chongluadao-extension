@@ -1,9 +1,7 @@
-// import * as fs from 'fs';
-// import * as path from 'path';
-
 import { BadRequestException, Injectable, HttpService } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { parseDomain, fromUrl, ParseResultType } from 'parse-domain';
 
 // Type
 import { BlacklistLink } from '../../type/blacklist-link.type';
@@ -84,27 +82,64 @@ export class TypelistService {
 
   async safeCheck(url: string): Promise<SafeCheckResDTO> {
     // Proprocess url => domain
-    const domain = preProcessLinkToDomainUrl(url);
-    const linkWithoutHttp = removeHttpFromLink(url);
     // 2 steps
     // Check Whitelist (link, domain, facebook, youtube)
     // Check Blacklist (link, domain, facebook, youtube)
 
-    switch (domain) {
-      case 'facebook.com':
-        return await this.handleSafeCheckLink(
-          linkWithoutHttp,
-          'facebook',
-          domain,
-        );
-      case 'youtube.com':
-        return await this.handleSafeCheckLink(
-          linkWithoutHttp,
-          'youtube',
-          domain,
-        );
-      default:
-        return await this.handleSafeCheckLink(linkWithoutHttp, '', domain);
+    const parseResult = parseDomain(fromUrl(url));
+
+    if (parseResult.type === ParseResultType.Listed) {
+      const { domain, topLevelDomains } = parseResult;
+
+      const queryDomain = domain + '.' + topLevelDomains[0];
+      const linkWithoutHttp = removeHttpFromLink(url);
+
+      switch (queryDomain) {
+        case 'facebook.com':
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            'facebook',
+            queryDomain,
+          );
+        case 'youtube.com':
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            'youtube',
+            queryDomain,
+          );
+        default:
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            '',
+            queryDomain,
+          );
+      }
+    } else if (parseResult.type === ParseResultType.Ip) {
+      const queryDomain = parseResult.hostname;
+      const linkWithoutHttp = removeHttpFromLink(url);
+
+      switch (queryDomain) {
+        case 'facebook.com':
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            'facebook',
+            queryDomain,
+          );
+        case 'youtube.com':
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            'youtube',
+            queryDomain,
+          );
+        default:
+          return await this.handleSafeCheckLink(
+            linkWithoutHttp,
+            '',
+            queryDomain,
+          );
+      }
+    } else {
+      throw new BadRequestException('Not support safecheck this type url');
     }
   }
 
@@ -120,7 +155,7 @@ export class TypelistService {
     );
 
     if (whiteListCheck.length > 0) {
-      return { type: 'safe ' };
+      return { type: 'safe' };
     } else {
       const blackListCheck = await this.checkExistedInBlackList(
         link,
@@ -152,16 +187,19 @@ export class TypelistService {
         return youtubeCheckList;
       default:
         const domainCheckListPromise = this.whitelistDomainModel.find({
-          url: '/' + domain + '/',
+          url: domain,
         });
-        const linkCheckListPromise = this.whitelistLinkModel.find({
-          url: '/' + link + '/',
+
+        const linkCheckListPromise = await this.whitelistLinkModel.find({
+          url: link,
         });
+
         const whiteListRes = await Promise.all([
           domainCheckListPromise,
           linkCheckListPromise,
         ]);
         const whiteListFlatRes = [...whiteListRes[0], ...whiteListRes[1]];
+
         return whiteListFlatRes;
     }
   }
