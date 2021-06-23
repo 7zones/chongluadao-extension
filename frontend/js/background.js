@@ -16,6 +16,7 @@ let inputBlockLenient = false;
 const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME';
 const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME';
 const ML_PORT_NAME = 'ML_PORT_NAME';
+const ML_URL = 'http://103.90.227.67:45000/predict';
 
 
 const decisionTree = (root) => {
@@ -42,89 +43,33 @@ const decisionTree = (root) => {
   };
 };
 
-
-const randomForest = (clf) => {
-  const predict = (X) => {
-    let pred = [clf['estimators'].map((row) => decisionTree(row).predict(X))];
-    pred = pred[0].map((col, i) => pred.map((row) => row[i]));
-    const results = [];
-    for (const p in pred) {
-      let positive=0, negative=0;
-      for (const i in pred[p]) {
-        positive += pred[p][i][1];
-        negative += pred[p][i][0];
-      }
-      results.push([positive>=negative, Math.max(positive, negative)]);
-    }
-    return results;
-  };
-  return {
-    'predict': predict
-  };
-};
-
-
-const fetchLive = (callback) => {
-  fetch('https://api.chongluadao.vn/classifier.json')
-    .then((data) => data.json())
-    .then((data) => {
-      chrome.storage.local.set({
-        cache: data,
-        cacheTime: Date.now()
-      }, () => callback(data));
-    });
-};
-
-
-const fetchCLF = (callback) => {
-  chrome.storage.local.get(['cache', 'cacheTime'], (items) => {
-    if (items.cache && items.cacheTime) {
-      return callback(items.cache);
-    }
-    fetchLive(callback);
-  });
-};
-
-
 const classify = (tabId, result, url)  => {
   /**
-   * If this site is on whitelist, we don't need to classify it anymore
-   * I return it here because don't know where to disable the ML event, should not trigger this
-   * event later
-   */
+     * If this site is on whitelist, we don't need to classify it anymore
+     * I return it here because don't know where to disable the ML event, should not trigger this
+     * event later
+     */
   if (window.isWhiteList[tabId] == url) {
     return;
   }
 
-  let legitimateCount = 0;
-  let suspiciousCount = 0;
-  let phishingCount = 0;
-  for (const key in result) {
-    if (result[key] == '1') {
-      phishingCount++;
-    }
-    else if (result[key] == '0') {
-      suspiciousCount++;
-    }
-    else {
-      legitimateCount++;
-    }
-  }
-  window.legitimatePercents[tabId] = (
-    legitimateCount / (phishingCount + suspiciousCount + legitimateCount) * 100);
+  const requestBody = {url};
+  fetch(ML_URL, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  })
+    .then((data) => data.json())
+    .then((data) => {
+      const resultPercentage = data.predictions[0]['phishing percentage'];
+      window.isPhish[tabId] = resultPercentage >= 60;
+      window.legitimatePercents[tabId] = 100 - resultPercentage;
+      // updateBadge(window.isPhish[tabId], resultPercentage, tabId);
+    }).catch(() => {});
 
-  if (result.length) {
-    const X = [result.map((row) => parseInt(row))];
-    fetchCLF(function(clf) {
-      const rf = randomForest(clf);
-      window.isPhish[tabId] = rf.predict(X)[0][0];
-      //TODO: correction
-      if (window.isPhish[tabId] && window.legitimatePercents[tabId] > 60) {
-        window.isPhish[tabId] = false;
-      }
-      updateBadge(window.isPhish[tabId], window.legitimatePercents[tabId], tabId);
-    });
-  }
 };
 
 
@@ -337,6 +282,7 @@ chrome.runtime.onConnect.addListener((port) => {
     break;
   case ML_PORT_NAME:
     port.onMessage.addListener((msg) => {
+
       const {request} = msg;
       if (request.input_block_list !== undefined) {
         blackListing = request.input_block_list;
