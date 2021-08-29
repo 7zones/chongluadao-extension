@@ -67,7 +67,7 @@ chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
     const site_score = document.getElementById('site_score');
     const percentage_content = document.getElementById('percentage_content');
     const site_msg = document.getElementById('site_msg');
-    percentage_content.classList.add(`p${parseInt(legitimatePercent)}`);
+    percentage_content.classList.add(`p${Math.round(legitimatePercent)}`);
 
     if (isPhish) {
       percentage_content.classList.add('orange');
@@ -81,7 +81,7 @@ chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
 
     const percentage  = parseInt(legitimatePercent);
     $('#site_msg').text(isNaN(percentage) ? '...' : phishingMessage);
-    $('#site_score').text(isNaN(percentage) ? '...' : `${parseInt(legitimatePercent) - 1}%`);
+    $('#site_score').text(isNaN(percentage) ? '...' : `${Math.round(legitimatePercent)}%`);
     $('#domain_url').text(domain);
   }
 });

@@ -21,10 +21,11 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/features.js"]
+      "js": ["js/features.js"],
+      "css": ["blocking.css"]
     }
   ],
-  "web_accessible_resources": ["js/blocking.js", "blocking.html"],
+  "web_accessible_resources": ["js/blocking.js", "blocking.html", "assets/warning-icon.png", "assets/logo.png"],
   "incognito": "split",
   "icons": {
     "16": "assets/cldvn16.png",

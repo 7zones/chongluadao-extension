@@ -9,14 +9,14 @@ window.legitimatePercents = {};
 
 
 // File level variables
-let blackListing = [];
+const blackListing = [];
 const whiteListing = [];
-let inputBlockLenient = false;
+const inputBlockLenient = false;
 
 const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME';
 const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME';
 const ML_PORT_NAME = 'ML_PORT_NAME';
-const ML_URL = 'http://103.90.227.67:45000/predict';
+const ML_URL = 'https://iceberg.chongluadao.vn/predict';
 
 
 const decisionTree = (root) => {
@@ -43,33 +43,35 @@ const decisionTree = (root) => {
   };
 };
 
-const classify = (tabId, result, url)  => {
+const classify = async (tabId, url)  => {
   /**
-     * If this site is on whitelist, we don't need to classify it anymore
-     * I return it here because don't know where to disable the ML event, should not trigger this
-     * event later
-     */
-  if (window.isWhiteList[tabId] == url) {
-    return;
+   * If this site is on whitelist, we don't need to classify it anymore
+   * I return it here because don't know where to disable the ML event, should not trigger this
+   * event later
+   */
+  const {hostname} = new URL(url);
+  if (window.isWhiteList[tabId] == hostname) {
+    return 0;
   }
 
   const requestBody = {url};
-  fetch(ML_URL, {
+  const prediction = await fetch(ML_URL, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
-  })
-    .then((data) => data.json())
-    .then((data) => {
-      const resultPercentage = data.predictions[0]['phishing percentage'];
-      window.isPhish[tabId] = resultPercentage >= 60;
-      window.legitimatePercents[tabId] = 100 - resultPercentage;
-      // updateBadge(window.isPhish[tabId], resultPercentage, tabId);
-    }).catch(() => {});
+  });
 
+  const {predictions} = await prediction.json();
+  const resultPercentage = predictions[0]['phishing percentage'];
+
+  window.isPhish[tabId] = resultPercentage >= 60;
+  window.legitimatePercents[tabId] = 100 - resultPercentage;
+  updateBadge(window.isPhish[tabId], resultPercentage, tabId);
+
+  return resultPercentage;
 };
 
 
@@ -264,13 +266,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
 
 chrome.runtime.onConnect.addListener((port) => {
   switch (port.name) {
-  case REDIRECT_PORT_NAME:
-    port.onMessage.addListener((msg) => {
-      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
-        chrome.tabs.update(tab.id, {url: msg.redirect});
-      });
-    });
-    break;
   case CLOSE_TAB_PORT_NAME:
     port.onMessage.addListener((msg) => {
       if (msg.close_tab) {
@@ -280,24 +275,20 @@ chrome.runtime.onConnect.addListener((port) => {
       }
     });
     break;
-  case ML_PORT_NAME:
-    port.onMessage.addListener((msg) => {
 
-      const {request} = msg;
-      if (request.input_block_list !== undefined) {
-        blackListing = request.input_block_list;
-        inputBlockLenient = request.input_block_lenient;
-      }
-      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
-        window.results[tab.id] = request;
-        classify(tab.id, request, tab.url);
-      });
-    });
-    break;
   default:
     ML_PORT_NAME;
     break;
   }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  classify(sender.tab.id, sender.tab.url).then((data) => {
+    console.log(data);
+    sendResponse(data);
+  });
+
+  return true;
 });
 
 chrome.webRequest.onBeforeRequest.addListener(safeCheck, {
