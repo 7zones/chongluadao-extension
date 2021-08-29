@@ -275,7 +275,13 @@ chrome.runtime.onConnect.addListener((port) => {
       }
     });
     break;
-
+  case REDIRECT_PORT_NAME:
+    port.onMessage.addListener((msg) => {
+      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+        chrome.tabs.update(tab.id, {url: msg.redirect});
+      });
+    });
+    break;
   default:
     ML_PORT_NAME;
     break;
