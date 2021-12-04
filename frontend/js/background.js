@@ -129,7 +129,7 @@ const classify = (tabId, result, url)  => {
 
 
 const startup = () => {
-  fetch('https://api.chongluadao.vn/v1/blacklist')
+  fetch('https://api.chongluadao.vn/v2/blacklist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
@@ -138,7 +138,7 @@ const startup = () => {
     }).catch(() => {});
 
 
-  fetch('https://api.chongluadao.vn/v1/whitelist')
+  fetch('https://api.chongluadao.vn/v2/whitelist')
     .then((data) => data.json())
     .then((data) => {
       data.forEach((item) => {
