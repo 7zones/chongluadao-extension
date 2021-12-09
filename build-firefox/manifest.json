@@ -1,6 +1,6 @@
 {
   "name": "ChongLuaDao",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Tiện ích giúp bảo vệ bạn khỏi các trang web có nguy cơ lừa đảo, giả mạo, có nội dung xấu hoặc phần mềm độc hại.",
   "homepage_url": "https://chongluadao.vn/",
   "permissions": [
@@ -25,7 +25,7 @@
     }
   ],
   "web_accessible_resources": ["js/blocking.js", "blocking.html"],
-  "incognito": "split",
+  "incognito": "not_allowed",
   "icons": {
     "16": "assets/cldvn16.png",
     "32": "assets/cldvn32.png",
