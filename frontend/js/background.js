@@ -87,6 +87,7 @@ const fetchCLF = (callback) => {
 
 
 const classify = (tabId, result, url)  => {
+  
   /**
    * If this site is on whitelist, we don't need to classify it anymore
    * I return it here because don't know where to disable the ML event, should not trigger this
@@ -155,6 +156,7 @@ const startup = () => {
  * @return Redirect
  */
 const blockingFunction = (url, blackSite, tabId) => {
+  console.log('blockingFunction');
   const message = {
     site: url,
     match: blackSite,
@@ -170,7 +172,7 @@ const blockingFunction = (url, blackSite, tabId) => {
     tabId
   });
 
-  const redirectUrl = `${chrome.extension.getURL('blocking.html')}#${JSON.stringify(message)}`;
+  const redirectUrl = `${browser.runtime.getURL('blocking.html')}#${JSON.stringify(message)}`;
   return {
     redirectUrl: redirectUrl
   };
@@ -179,7 +181,7 @@ const blockingFunction = (url, blackSite, tabId) => {
 
 const createUrlObject = (url) => {
   try {
-    return new URL(url);
+    return new URL(url.replace('*.', ''));
   } catch(err) {
     return;
   }
@@ -192,10 +194,10 @@ const createUrlObject = (url) => {
  */
 const safeCheck = ({url, tabId, initiator}) => {
   // Invalid url
-  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.extension.getURL('/')) === 0) {
+  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(browser.runtime.getURL('/')) === 0) {
     return;
   }
-
+  
   // Blacklist is empty or undefined
   if (!blackListing || !blackListing.length) {
     return;
@@ -211,21 +213,20 @@ const safeCheck = ({url, tabId, initiator}) => {
   const currentSite = psl.parse(currentUrl.host);
   const currentPath = currentUrl.href.replaceAll('/', '');
 
-  for (let i = 0; i < sites.length; ++i) {
-    const blackSite = createUrlObject(sites[i]);
+  for (let i = 0; i < sites.length; ++i) {    
+    const blackSite = createUrlObject(sites[i]);    
     if (!blackSite) {
       continue;
     }
-    const prefix = blackSite.host.split('.')[0];
+    const prefix = sites[i].indexOf('*.');
     const suffix = blackSite.pathname;
-
+    
     /**
      * Here we check if this blackSite is being blocked for all subdomains
      * format: *.blacksite.com
      */
-    if (prefix == '%2A') {
-      const blackDomain = blackSite.host.slice(4, blackSite.host.length);
-      if(blackDomain == currentSite.domain) {
+    if (prefix) {          
+      if(blackSite.host === currentSite.domain) {
         return blockingFunction(url, blackSite.host, tabId);
       }
     }
@@ -303,7 +304,7 @@ chrome.runtime.onInstalled.addListener(() => {
   startup();
   chrome.notifications.create({
     type: 'basic',
-    iconUrl: chrome.extension.getURL('assets/logo.png'),
+    iconUrl: browser.runtime.getURL('assets/logo.png'),
     title: 'Cài đặt thành công!',
     message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
   });

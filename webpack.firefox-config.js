@@ -16,6 +16,7 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
+      'chrome.extension': 'browser.runtime',
       'chrome': 'browser',
     }),
   ]

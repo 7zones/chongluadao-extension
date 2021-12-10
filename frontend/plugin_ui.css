@@ -2,6 +2,9 @@
   font-size: 62.5%;
   font-family: "Russo One", "Josefin Sans", sans-serif;
 }
+#plugin_main {
+  width: 33rem;
+}
 #plugin_name {
   width: 33rem;
   margin: 0 0;
