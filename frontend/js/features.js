@@ -3,7 +3,6 @@
 // const REDIRECT_PORT_NAME = 'REDIRECT_PORT_NAME';
 // const CLOSE_TAB_PORT_NAME = 'CLOSE_TAB_PORT_NAME';
 const ML_PORT_NAME = 'ML_PORT_NAME';
-
 /*
 $('a').click(function(){
     alert("You are about to go to "+$(this).attr('href'));
@@ -294,12 +293,10 @@ if (iframes.length == 0) {
 
 chrome.runtime.sendMessage({
   type: ML_PORT_NAME,
-  request: result,
-  tabId: chrome.runtime.id  // This will be the ID of the current tab
+  request: result
 }, (response) => {
   if (chrome.runtime.lastError) {
     console.error('Error sending message:', chrome.runtime.lastError);
     return;
   }
-  console.log('Message sent successfully', response);
 });

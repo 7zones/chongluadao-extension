@@ -156,7 +156,6 @@ const startup = () => {
  * @return Redirect
  */
 const blockingFunction = (url, blackSite, tabId) => {
-  console.log('blockingFunction');
   const message = {
     site: url,
     match: blackSite,
@@ -197,7 +196,6 @@ const createUrlObject = (url) => {
  * @docs https://developer.chrome.com/docs/extensions/reference/webRequest/#event-onBeforeRequest
  */
 const safeCheck = async ({ url, tabId, initiator }) => {
-  console.log('safeCheck', { url, tabId, initiator });
   // Invalid url
   if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.runtime.getURL('/')) === 0) {
     return;
@@ -326,8 +324,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('onMessage', message);
-  switch (message.type) {
+  const { type } = message;
+  
+  switch (type) {
     case REDIRECT_PORT_NAME:
       chrome.tabs.update(message.tabId, { url: message.redirect }, () => {
         if (chrome.runtime.lastError) {
@@ -355,27 +354,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Indicates that the response is sent asynchronously
 
     case ML_PORT_NAME:
-      const { request, tabId } = message;
-      if (request.input_block_list !== undefined) {
-        blackListing = request.input_block_list;
-        inputBlockLenient = request.input_block_lenient;
+      const senderId = sender.tab ? sender.tab.id : null;
+      if (message.input_block_list !== undefined) {
+        blackListing = message.input_block_list;
+        inputBlockLenient = message.input_block_lenient;
       }
-      results[tabId] = request;
+      results[senderId] = message.request;
       
-      // Get the tab URL using chrome.tabs API
-      chrome.tabs.get(tabId, (tab) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error getting tab:', chrome.runtime.lastError);
-          sendResponse({ error: 'Error getting tab information' });
-          return;
-        }
-        classify(tabId, request, tab.url);
+      // Use sender.tab instead of chrome.tabs.get
+      if (sender.tab && sender.tab.url) {
+        classify(senderId, message.request, sender.tab.url);
         sendResponse({ success: true });
+      } else {
+        sendResponse({ error: 'Unable to get tab information' });
+      }
+      return true;
+
+    case 'GET_TAB_DATA':
+      const { tabId } = message;
+      sendResponse({
+        isWhiteList: isWhiteList[tabId],
+        isBlocked: isBlocked[tabId],
+        results: results[tabId],
+        isPhish: isPhish[tabId],
+        legitimatePercents: legitimatePercents[tabId]
       });
       return true; // Indicates that the response is sent asynchronously
     
     default:
-      console.warn('Unknown message type:', message.type);
+      console.warn('Unknown message type:', type);
       sendResponse({ error: 'Unknown message type' });
   }
 });
@@ -403,3 +410,4 @@ const setStorageData = (key, value) => {
     chrome.storage.local.set({ [key]: value }, resolve);
   });
 };
+
