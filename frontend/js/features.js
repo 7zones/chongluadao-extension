@@ -291,10 +291,15 @@ if (iframes.length == 0) {
 }
 
 //---------------------- Sending the result  ----------------------
-const mlPort = chrome.runtime.connect({name: ML_PORT_NAME});
-mlPort.postMessage({request: result});
 
-chrome.runtime.onMessage.addListener((tab) => {
-  result['tab'] = tab;
-  mlPort.postMessage({request: result});
+chrome.runtime.sendMessage({
+  type: ML_PORT_NAME,
+  request: result,
+  tabId: chrome.runtime.id  // This will be the ID of the current tab
+}, (response) => {
+  if (chrome.runtime.lastError) {
+    console.error('Error sending message:', chrome.runtime.lastError);
+    return;
+  }
+  console.log('Message sent successfully', response);
 });

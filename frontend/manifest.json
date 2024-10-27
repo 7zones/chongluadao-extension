@@ -6,16 +6,17 @@
   "permissions": [
     "tabs",
     "storage",
-    "webRequestBlocking",
     "webRequest",
-    "notifications",
+    "notifications"
+  ],
+  "host_permissions": [
     "*://*/*"
   ],
   "background": {
-    "scripts": ["js/psl.min.js", "js/background.js"],
-    "persistent": true
+    "service_worker": "js/background.js",
+    "type": "module"
   },
-  "browser_action": {
+  "action": {
     "default_popup": "plugin_ui.html"
   },
   "content_scripts": [
@@ -24,7 +25,10 @@
       "js": ["js/features.js"]
     }
   ],
-  "web_accessible_resources": ["js/blocking.js", "blocking.html"],
+  "web_accessible_resources": [{
+    "resources": ["js/blocking.js", "blocking.html"],
+    "matches": ["<all_urls>"]
+  }],
   "incognito": "split",
   "icons": {
     "16": "assets/cldvn16.png",
@@ -32,6 +36,8 @@
     "48": "assets/cldvn48.png",
     "128": "assets/cldvn128.png"
   },
-  "manifest_version": 2,
-  "content_security_policy": "script-src 'self' https://cdnjs.cloudflare.com; object-src 'self'"
+  "manifest_version": 3,
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }
