@@ -1,6 +1,5 @@
 /*global chrome*/
 /*global $*/
-const background = chrome.extension.getBackgroundPage();
 const colors = {
   '-1': '#28a745',
   '0': '#ffeb3c',
@@ -19,69 +18,82 @@ const colors = {
   });
 });
 
-chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
+chrome.tabs.query({active: true, currentWindow: true}, ([tab]) => {
+  if (!tab) {
+    console.error('No active tab found');
+    return;
+  }
+
   const tabId = tab.id;
   const url = new URL(tab.url);
   const domain = url.hostname;
-  // Display nothing if protocol is neither http or https
+
+  // Display nothing if protocol is neither http nor https
   if (!['https:', 'http:'].includes(url.protocol)) {
     $('#pluginBody').hide();
     $('#domain_url').text(domain);
     return;
   }
 
-  if (background.isWhiteList[tab.id] == domain) {
-    $('#pluginBody').hide();
-    $('#isSafe').show();
-    $('#isSafe .site-url').text(domain);
-
-    chrome.browserAction.setIcon({
-      path: '../assets/cldvn128.png',
-      tabId
-    });
-
-  } else if(background.isBlocked[tab.id] == domain){
-    $('#pluginBody').hide();
-    $('#isPhishing').show();
-    $('#isPhishing .site-url').text(background.isBlocked[tab.id]);
-
-    chrome.browserAction.setIcon({
-      path: '../assets/cldvn_red.png',
-      tabId
-    });
-  } else {
-    const result = background.results[tab.id];
-    const isPhish = background.isPhish[tab.id];
-    const legitimatePercent = background.legitimatePercents[tab.id];
-
-    for (const key in result) {
-      const newFeature = document.createElement('li');
-      newFeature.textContent = key;
-      newFeature.style.backgroundColor = colors[result[key]];
-      const featureList = document.getElementById('features');
-      featureList.appendChild(newFeature);
+  // Request data from the background script
+  chrome.runtime.sendMessage({type: 'GET_TAB_DATA', tabId}, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error getting tab data:', chrome.runtime.lastError);
+      return;
     }
 
-    const phishingMessage = isPhish ? 'Website này có thể không an toàn.' : 'Website này có thể an toàn.';
+    if (response.isWhiteList === domain) {
+      $('#pluginBody').hide();
+      $('#isSafe').show();
+      $('#isSafe .site-url').text(domain);
 
-    const site_score = document.getElementById('site_score');
-    const percentage_content = document.getElementById('percentage_content');
-    const site_msg = document.getElementById('site_msg');
-    percentage_content.classList.add(`p${parseInt(legitimatePercent)}`);
+      chrome.action.setIcon({
+        path: '../assets/cldvn128.png',
+        tabId
+      });
+    } else if (response.isBlocked === domain) {
+      $('#pluginBody').hide();
+      $('#isPhishing').show();
+      $('#isPhishing .site-url').text(response.isBlocked);
 
-    if (isPhish) {
-      percentage_content.classList.add('orange');
-      site_score.classList.add('warning');
-      site_msg.classList.add('warning');
+      chrome.action.setIcon({
+        path: '../assets/cldvn_red.png',
+        tabId
+      });
+    } else {
+      const result = response.results;
+      const isPhish = response.isPhish;
+      const legitimatePercent = response.legitimatePercents;
+
+      for (const key in result) {
+        const newFeature = document.createElement('li');
+        newFeature.textContent = key;
+        newFeature.style.backgroundColor = colors[result[key]];
+        const featureList = document.getElementById('features');
+        featureList.appendChild(newFeature);
+      }
+
+      const phishingMessage = isPhish ? 'Website này có thể không an toàn.' : 'Website này có thể an toàn.';
+
+      const site_score = document.getElementById('site_score');
+      const percentage_content = document.getElementById('percentage_content');
+      const site_msg = document.getElementById('site_msg');
+      percentage_content.classList.add(`p${parseInt(legitimatePercent)}`);
+
+      if (isPhish) {
+        percentage_content.classList.add('orange');
+        site_score.classList.add('warning');
+        site_msg.classList.add('warning');
+      }
+      else {
+        site_score.classList.add('safe');
+        site_msg.classList.add('safe');
+      }
+
+      const percentage  = parseInt(legitimatePercent);
+      $('#site_msg').text(isNaN(percentage) ? '...' : phishingMessage);
+      $('#site_score').text(isNaN(percentage) ? '...' : `${parseInt(legitimatePercent) - 1}%`);
+      $('#domain_url').text(domain);
     }
-    else {
-      site_score.classList.add('safe');
-      site_msg.classList.add('safe');
-    }
-
-    const percentage  = parseInt(legitimatePercent);
-    $('#site_msg').text(isNaN(percentage) ? '...' : phishingMessage);
-    $('#site_score').text(isNaN(percentage) ? '...' : `${parseInt(legitimatePercent) - 1}%`);
-    $('#domain_url').text(domain);
-  }
+  });
 });

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "chongluadao",
   "scripts": {
-    "build": "rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
+    "build": "export NODE_OPTIONS=--openssl-legacy-provider && rm -rf ./build/* && cp -r ./frontend/* ./build/ && webpack --config webpack.config.js && gulp licenses",
     "build-firefox": "rm -rf ./build-firefox/* && cp -r ./frontend/* ./build-firefox/ && webpack --config webpack.firefox-config.js && gulp licenses --firefox"
   },
   "repository": {

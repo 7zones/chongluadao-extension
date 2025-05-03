@@ -1,11 +1,12 @@
 /* global chrome*/
 /* global psl*/
 // global variables, accessed in plugin_ui.js via chrome.extension.getBackgroundPage()
-window.isWhiteList = {};
-window.isBlocked = {};
-window.results = {};
-window.isPhish = {};
-window.legitimatePercents = {};
+import psl from './psl-wrapper.js';
+let isWhiteList = {};
+let isBlocked = {};
+let results = {};
+let isPhish = {};
+let legitimatePercents = {};
 
 
 // File level variables
@@ -87,13 +88,12 @@ const fetchCLF = (callback) => {
 
 
 const classify = (tabId, result, url)  => {
-  
   /**
    * If this site is on whitelist, we don't need to classify it anymore
    * I return it here because don't know where to disable the ML event, should not trigger this
    * event later
    */
-  if (window.isWhiteList[tabId] == url) {
+  if (isWhiteList[tabId] == url) {
     return;
   }
 
@@ -111,19 +111,19 @@ const classify = (tabId, result, url)  => {
       legitimateCount++;
     }
   }
-  window.legitimatePercents[tabId] = (
+  legitimatePercents[tabId] = (
     legitimateCount / (phishingCount + suspiciousCount + legitimateCount) * 100);
 
   if (result.length) {
     const X = [result.map((row) => parseInt(row))];
     fetchCLF(function(clf) {
       const rf = randomForest(clf);
-      window.isPhish[tabId] = rf.predict(X)[0][0];
+      isPhish[tabId] = rf.predict(X)[0][0];
       //TODO: correction
-      if (window.isPhish[tabId] && window.legitimatePercents[tabId] > 60) {
-        window.isPhish[tabId] = false;
+      if (isPhish[tabId] && legitimatePercents[tabId] > 60) {
+        isPhish[tabId] = false;
       }
-      updateBadge(window.isPhish[tabId], window.legitimatePercents[tabId], tabId);
+      updateBadge(isPhish[tabId], legitimatePercents[tabId], tabId);
     });
   }
 };
@@ -156,7 +156,6 @@ const startup = () => {
  * @return Redirect
  */
 const blockingFunction = (url, blackSite, tabId) => {
-  console.log('blockingFunction');
   const message = {
     site: url,
     match: blackSite,
@@ -164,20 +163,24 @@ const blockingFunction = (url, blackSite, tabId) => {
     lenient: inputBlockLenient,
     favicon: `https://www.google.com/s2/favicons?domain=${url}`,
   };
-  window.isBlocked[tabId] = url;
+  isBlocked[tabId] = url;
 
-  // TODO: This still not work, must find another way to change icon to red
-  chrome.browserAction.setIcon({
+  chrome.action.setIcon({
     path: '../assets/cldvn_red.png',
     tabId
   });
 
-  const redirectUrl = `${browser.runtime.getURL('blocking.html')}#${JSON.stringify(message)}`;
-  return {
-    redirectUrl: redirectUrl
-  };
-};
+  const redirectUrl = `${chrome.runtime.getURL('blocking.html')}#${JSON.stringify(message)}`;
+  
+  // Redirect the tab to the blocking page
+  chrome.tabs.update(tabId, { url: redirectUrl }, () => {
+    if (chrome.runtime.lastError) {
+      console.error('Error redirecting tab:', chrome.runtime.lastError);
+    }
+  });
 
+  // We no longer return a redirectUrl object, as we're handling the redirect directly
+};
 
 const createUrlObject = (url) => {
   try {
@@ -192,9 +195,9 @@ const createUrlObject = (url) => {
  * @param {Object} details of onBeforeRequest event
  * @docs https://developer.chrome.com/docs/extensions/reference/webRequest/#event-onBeforeRequest
  */
-const safeCheck = ({url, tabId, initiator}) => {
+const safeCheck = async ({ url, tabId, initiator }) => {
   // Invalid url
-  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(browser.runtime.getURL('/')) === 0) {
+  if (!url || url.indexOf('chrome://') === 0 || url.indexOf(chrome.runtime.getURL('/')) === 0) {
     return;
   }
   
@@ -204,8 +207,10 @@ const safeCheck = ({url, tabId, initiator}) => {
   }
 
   // In case user decided to not blocking this site, we let them in
-  if (localStorage.getItem('whiteList')) {
-    return localStorage.removeItem('whiteList');
+  const whiteList = await getStorageData('whiteList');
+  if (whiteList) {
+    await setStorageData('whiteList', null);
+    return;
   }
 
   const sites = blackListing;
@@ -256,7 +261,7 @@ const safeCheck = ({url, tabId, initiator}) => {
   // If not blocklisted, then just check the domain of the initiator instead of sub frame url
   const domain = getDomain(initiator || url);
   if (whiteListing.find((row) => row.includes(domain))) {
-    window.isWhiteList[tabId] = domain;
+    isWhiteList[tabId] = domain;
     return;
   }
 
@@ -265,24 +270,23 @@ const safeCheck = ({url, tabId, initiator}) => {
 
 const sendCurrentUrl = (tab = null) => {
   if (tab && tab.tabId) {
-    return updateBadge(window.isPhish[tab.tabId], window.legitimatePercents[tab.tabId], tab.tabId);
+    return updateBadge(isPhish[tab.tabId], legitimatePercents[tab.tabId], tab.tabId);
   }
   chrome.tabs.query({active: true, currentWindow: true}, ([tab]) =>  {
-    updateBadge(window.isPhish[tab.id], window.legitimatePercents[tab.id], tab.id);
+    updateBadge(isPhish[tab.id], legitimatePercents[tab.id], tab.id);
   });
 };
 
 
 const updateBadge = (isPhishing, legitimatePercent, tabId) => {
-  chrome.browserAction.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`});
+  chrome.action.setTitle({title: `P:${isPhishing} per: ${legitimatePercent}`, tabId});
   if (isPhishing) {
-    return chrome.browserAction.setIcon({
+    return chrome.action.setIcon({
       path: '../assets/cldvn_red.png',
       tabId
     });
   }
-  //else(!isPhishing && parseInt(legitimatePercent) < 50)
-  chrome.browserAction.setIcon({
+  chrome.action.setIcon({
     path: '../assets/cldvn128.png',
     tabId
   });
@@ -304,7 +308,7 @@ chrome.runtime.onInstalled.addListener(() => {
   startup();
   chrome.notifications.create({
     type: 'basic',
-    iconUrl: browser.runtime.getURL('assets/logo.png'),
+    iconUrl: chrome.runtime.getURL('assets/logo.png'),
     title: 'Cài đặt thành công!',
     message: 'Khởi động lại trình duyệt của bạn để có thể bắt đầu sử dụng ChongLuaDao. Xin cảm ơn!'
   });
@@ -312,50 +316,98 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.tabs.onActivated.addListener(sendCurrentUrl);
 
-chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
-  if (tab.status == 'complete') {
-    chrome.tabs.sendMessage(tab.id, tab);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    chrome.tabs.sendMessage(tabId, { type: 'TAB_UPDATED', tab })
+      .catch((error) => console.log('Error sending message to tab:', error));
   }
 });
 
-chrome.runtime.onConnect.addListener((port) => {
-  switch (port.name) {
-  case REDIRECT_PORT_NAME:
-    port.onMessage.addListener((msg) => {
-      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
-        chrome.tabs.update(tab.id, {url: msg.redirect});
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const { type } = message;
+  
+  switch (type) {
+    case REDIRECT_PORT_NAME:
+      chrome.tabs.update(message.tabId, { url: message.redirect }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Error updating tab:', chrome.runtime.lastError);
+          sendResponse({ error: 'Error updating tab' });
+        } else {
+          sendResponse({ success: true });
+        }
       });
-    });
-    break;
-  case CLOSE_TAB_PORT_NAME:
-    port.onMessage.addListener((msg) => {
-      if (msg.close_tab) {
-        chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
-          chrome.tabs.remove(tab.id);
+      return true; // Indicates that the response is sent asynchronously
+
+    case CLOSE_TAB_PORT_NAME:
+      if (message.close_tab) {
+        chrome.tabs.remove(message.tabId, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Error closing tab:', chrome.runtime.lastError);
+            sendResponse({ error: 'Error closing tab' });
+          } else {
+            sendResponse({ success: true });
+          }
         });
+      } else {
+        sendResponse({ success: false, reason: 'close_tab flag not set' });
       }
-    });
-    break;
-  case ML_PORT_NAME:
-    port.onMessage.addListener((msg) => {
-      const {request} = msg;
-      if (request.input_block_list !== undefined) {
-        blackListing = request.input_block_list;
-        inputBlockLenient = request.input_block_lenient;
+      return true; // Indicates that the response is sent asynchronously
+
+    case ML_PORT_NAME:
+      const senderId = sender.tab ? sender.tab.id : null;
+      if (message.input_block_list !== undefined) {
+        blackListing = message.input_block_list;
+        inputBlockLenient = message.input_block_lenient;
       }
-      chrome.tabs.query({currentWindow: true, active: true}, ([tab,]) => {
-        window.results[tab.id] = request;
-        classify(tab.id, request, tab.url);
+      results[senderId] = message.request;
+      
+      // Use sender.tab instead of chrome.tabs.get
+      if (sender.tab && sender.tab.url) {
+        classify(senderId, message.request, sender.tab.url);
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ error: 'Unable to get tab information' });
+      }
+      return true;
+
+    case 'GET_TAB_DATA':
+      const { tabId } = message;
+      sendResponse({
+        isWhiteList: isWhiteList[tabId],
+        isBlocked: isBlocked[tabId],
+        results: results[tabId],
+        isPhish: isPhish[tabId],
+        legitimatePercents: legitimatePercents[tabId]
       });
-    });
-    break;
-  default:
-    ML_PORT_NAME;
-    break;
+      return true; // Indicates that the response is sent asynchronously
+    
+    default:
+      console.warn('Unknown message type:', type);
+      sendResponse({ error: 'Unknown message type' });
   }
 });
 
 chrome.webRequest.onBeforeRequest.addListener(safeCheck, {
   urls: ['*://*/*'],
   types: ['main_frame', 'sub_frame']
-}, ['blocking']);
+});
+
+
+// Export variables and functions that need to be accessed from other parts of your extension
+export { isWhiteList, isBlocked, results, isPhish, legitimatePercents, classify, sendCurrentUrl, updateBadge };
+
+// Replace localStorage with chrome.storage.local
+const getStorageData = (key) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(key, (result) => {
+      resolve(result[key]);
+    });
+  });
+};
+
+const setStorageData = (key, value) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [key]: value }, resolve);
+  });
+};
+
